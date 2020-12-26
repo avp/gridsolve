@@ -1,0 +1,12 @@
+= Gridsolve
+
+A program for solving grid logic puzzles while printing out its reasoning.
+
+== Getting Started
+
+See the link:./puzzles/[puzzles] directory for the puzzle format.
+
+== Inspiration
+
+The program is based on Escamocher and O'Sullivan's paper
+https://arxiv.org/pdf/1910.06636.pdf[Solving Logic Grid Puzzles with an Algorithm that Imitates Human Behavior], with some modifications.

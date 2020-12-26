@@ -1,0 +1,87 @@
+= Puzzle files
+
+== File Format
+
+Format for puzzle files is as follows:
+
+.sample.txt
+----
+[Categories]
+category 1 name
+label_1
+label_2
+label_3
+label_4
+
+category 2 name
+label_5
+label_6
+label_7
+label_8
+
+[Clues]
+1,yes,label_1,label_2
+1,no,label_6,label_8
+----
+
+Any number of constraints can be placed in the `[Clues]` section.
+
+See any of the files in this directory for a real example.
+
+== Constraint Format
+
+----
+clue_num,constraint_kind,args...
+----
+
+Each clue is a comma-separated string.
+The first field is the number of the original clue in the puzzle from which the constraint is derived.
+The second field is the name of the constraint.
+The remaining fields are the arguments to the constraint.
+
+=== Constraint Kinds
+
+In the following, lower case characters denote labels.
+Upper case characters denote categories.
+Tokens that begin with `$` denote any integer constant, for example `$n` can be `1` or `4`.
+
+Yes::
+`yes,x,y`
++
+`x` is `y`.
+
+No::
+`no,x,y`
++
+`x` is not `y`.
+
+Or::
+`or,x,y,z`
++
+`x` is `y` or `z`.
+
+Xor::
+`xor,x,y,z`
++
+`x` is `y` or `z`, but not both.
+
+After::
+`after,x,C,y`
++
+In category `C`, `x` appears somewhere after `y`.
+
+AfterExactly::
+`afterexactly,x,C,y,$n`
++
+In category `C`, `x` appears exactly `$n` labels after `y`.
+
+Two by two::
+`twobytwo,x1,x2,y1,y2`
++
+Either `x1` is `y1` and `x2` is `y2`, or `x1` is `y2` and `x2` is `y1`.
+
+Exactly one::
+`exactlyone,x_1,y_1,...,x_n,y_n`
++
+There exists exactly one `i` such that `x_i` is `y_i`.
+For all other `j != i`, it must be the case that `x_i` is not `y_i`.
