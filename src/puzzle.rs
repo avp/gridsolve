@@ -72,17 +72,12 @@ pub struct Puzzle {
 }
 
 impl Puzzle {
-    /// Create a new empty Puzzle.
-    pub fn new() -> Self {
-        Default::default()
-    }
-
     /// Parse a puzzle file from `path` and return the resultant Puzzle if the file
     /// was a valid puzzle file.
     pub fn from_file(path: &PathBuf) -> Result<Self> {
         let file = File::open(path)?;
         let mut lines = std::io::BufReader::new(file).lines();
-        let mut puzzle = Self::new();
+        let mut puzzle = Self::default();
         loop {
             match lines.next() {
                 Some(Ok(line)) => {
