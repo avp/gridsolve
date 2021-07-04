@@ -3,7 +3,7 @@ use bimap::BiMap;
 use snafu::Snafu;
 use std::fs::File;
 use std::io::BufRead;
-use std::path::PathBuf;
+use std::path::Path;
 
 /// A category index in the puzzle.
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -72,9 +72,9 @@ pub struct Puzzle {
 }
 
 impl Puzzle {
-    /// Parse a puzzle file from `path` and return the resultant Puzzle if the file
-    /// was a valid puzzle file.
-    pub fn from_file(path: &PathBuf) -> Result<Self> {
+    /// Parse a puzzle file from `path` and return the resultant Puzzle
+    /// if the file was a valid puzzle file.
+    pub fn from_file(path: &Path) -> Result<Self> {
         let file = File::open(path)?;
         let mut lines = std::io::BufReader::new(file).lines();
         let mut puzzle = Self::default();

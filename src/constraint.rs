@@ -131,9 +131,9 @@ impl Rule for Constraint {
                             changed |= grid.set(x, cur, hi_y)?;
                         }
                     } else if i + n >= grid.labels_per_category {
-                        // Can't go `n` higher, so just check lower.
+                        // TODO: Can't go `n` higher, so just check lower.
                     } else {
-                        // Check both directions.
+                        // TODO: Check both directions.
                     }
                 }
             }

@@ -38,10 +38,7 @@ impl<'p> fmt::Display for Solution<'p> {
             for cat in 0..self.puzzle.num_categories() {
                 let second =
                     soln_row[self.puzzle.lookup_category(Category(cat))];
-                let name = match second {
-                    None => "",
-                    Some(second) => second,
-                };
+                let name = second.unwrap_or("");
                 table_row.add_cell(Cell::new(name));
             }
             table.add_row(table_row);
