@@ -131,7 +131,14 @@ impl Rule for Constraint {
                             changed |= grid.set(x, cur, hi_y)?;
                         }
                     } else if i + n >= grid.labels_per_category {
-                        // TODO: Can't go `n` higher, so just check lower.
+                        // Can't go `n` higher, so just check lower.
+                        let lo_x = *grid.at(x, Label::new(c, i - n));
+                        let lo_y = *grid.at(y, Label::new(c, i - n));
+                        if lo_x != Cell::Empty {
+                            changed |= grid.set(y, cur, lo_x)?;
+                        } else if lo_y != Cell::Empty {
+                            changed |= grid.set(x, cur, lo_y)?;
+                        }
                     } else {
                         // TODO: Check both directions.
                     }
