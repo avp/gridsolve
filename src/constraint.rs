@@ -295,12 +295,30 @@ impl Rule for Constraint {
                 changed |= grid.set(x, y, Cell::No)?;
                 for i in 0..grid.labels_per_category {
                     if i < n {
-                        changed |= grid.set(x, Label::new(c, i), Cell::No)?;
+                        changed |= grid.set_with_callback(x, Label::new(c, i), Cell::No, || {
+                            info!(
+                                "    Constraint {} => {} ({}) must have {} before in ({})\n",
+                                self.name,
+                                puzzle.lookup_label(x),
+                                puzzle.lookup_category(x.category),
+                                n,
+                                puzzle.lookup_category(c),
+                            );
+                        })?;
                         continue;
                     }
                     let l = Label::new(c, i - n);
                     if *grid.at(y, l) == Cell::No {
-                        changed |= grid.set(x, Label::new(c, i), Cell::No)?;
+                        changed |= grid.set_with_callback(x, Label::new(c, i), Cell::No, || {
+                            info!(
+                                "    Constraint {} => {} ({}) must have {} after in ({})\n",
+                                self.name,
+                                puzzle.lookup_label(x),
+                                puzzle.lookup_category(x.category),
+                                n,
+                                puzzle.lookup_category(c),
+                            );
+                        })?;
                     }
                 }
                 for i in (0..grid.labels_per_category).rev() {
