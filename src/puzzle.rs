@@ -1,4 +1,4 @@
-use crate::constraint::Constraint;
+use crate::constraint::{Constraint, ConstraintKind};
 use anyhow::{Context, Result};
 use bimap::BiMap;
 use std::fs::File;
@@ -126,30 +126,33 @@ impl Puzzle {
 
         for (line_number, line) in lines.enumerate() {
             let line = line?;
-            let mut parts = line.trim().split(',').skip(1).collect::<Vec<&str>>();
-            let constraint_name = parts[0];
-            parts.remove(0);
-            if parts.len() < 2 {
+            let parts_vec = line
+                .trim()
+                .split(',')
+                .map(|s| s.trim())
+                .collect::<Vec<&str>>();
+            if parts_vec.len() < 3 {
                 return Err(PuzzleError::InvalidClue { clue: line });
             }
+            let (name, parts) = parts_vec.as_slice().split_first().unwrap();
             let constraint = match parts[0] {
                 "yes" => {
                     if parts.len() < 3 {
                         return Err(PuzzleError::InvalidClue { clue: line });
                     }
-                    Constraint::Yes(puzzle.label(parts[1])?, puzzle.label(parts[2])?)
+                    ConstraintKind::Yes(puzzle.label(parts[1])?, puzzle.label(parts[2])?)
                 }
                 "no" => {
                     if parts.len() < 3 {
                         return Err(PuzzleError::InvalidClue { clue: line });
                     }
-                    Constraint::No(puzzle.label(parts[1])?, puzzle.label(parts[2])?)
+                    ConstraintKind::No(puzzle.label(parts[1])?, puzzle.label(parts[2])?)
                 }
                 "after" => {
                     if parts.len() < 4 {
                         return Err(PuzzleError::InvalidClue { clue: line });
                     }
-                    Constraint::After(
+                    ConstraintKind::After(
                         puzzle.label(parts[1])?,
                         puzzle.category(parts[2])?,
                         puzzle.label(parts[3])?,
@@ -166,7 +169,7 @@ impl Puzzle {
                     if n > puzzle.labels_per_category() - 1 {
                         return Err(PuzzleError::InvalidClue { clue: line });
                     }
-                    Constraint::AfterAtLeast(
+                    ConstraintKind::AfterAtLeast(
                         puzzle.label(parts[1])?,
                         puzzle.category(parts[2])?,
                         puzzle.label(parts[3])?,
@@ -184,7 +187,7 @@ impl Puzzle {
                     if n > puzzle.labels_per_category() - 1 {
                         return Err(PuzzleError::InvalidClue { clue: line });
                     }
-                    Constraint::AfterExactly(
+                    ConstraintKind::AfterExactly(
                         puzzle.label(parts[1])?,
                         puzzle.category(parts[2])?,
                         puzzle.label(parts[3])?,
@@ -195,7 +198,7 @@ impl Puzzle {
                     if parts.len() < 4 {
                         return Err(PuzzleError::InvalidClue { clue: line });
                     }
-                    Constraint::Or(
+                    ConstraintKind::Or(
                         puzzle.label(parts[1])?,
                         puzzle.label(parts[2])?,
                         puzzle.label(parts[3])?,
@@ -205,7 +208,7 @@ impl Puzzle {
                     if parts.len() < 4 {
                         return Err(PuzzleError::InvalidClue { clue: line });
                     }
-                    Constraint::Xor(
+                    ConstraintKind::Xor(
                         puzzle.label(parts[1])?,
                         puzzle.label(parts[2])?,
                         puzzle.label(parts[3])?,
@@ -215,7 +218,7 @@ impl Puzzle {
                     if parts.len() < 5 {
                         return Err(PuzzleError::InvalidClue { clue: line });
                     }
-                    Constraint::TwoByTwo(
+                    ConstraintKind::TwoByTwo(
                         puzzle.label(parts[1])?,
                         puzzle.label(parts[2])?,
                         puzzle.label(parts[3])?,
@@ -233,11 +236,14 @@ impl Puzzle {
                             puzzle.label(parts[i * 2 + 2])?,
                         ));
                     }
-                    Constraint::ExactlyOne(constraints)
+                    ConstraintKind::ExactlyOne(constraints)
                 }
                 _ => return Err(PuzzleError::InvalidClue { clue: line }),
             };
-            puzzle.add_constraint(constraint);
+            puzzle.add_constraint(Constraint {
+                kind: constraint,
+                name: name.to_string(),
+            });
         }
 
         Ok(puzzle)

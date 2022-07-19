@@ -3,9 +3,10 @@
 use crate::puzzle::*;
 use crate::rule::Rule;
 use crate::solver::{Cell, Grid};
+use log::info;
 
 #[derive(Debug)]
-pub enum Constraint {
+pub enum ConstraintKind {
     /// Yes(x, y) ==> (x, y) == No
     Yes(Label, Label),
 
@@ -39,56 +40,258 @@ pub enum Constraint {
     ExactlyOne(Vec<(Label, Label)>),
 }
 
+#[derive(Debug)]
+pub struct Constraint {
+    pub kind: ConstraintKind,
+
+    pub name: String,
+}
+
+impl Constraint {
+    #[must_use]
+    fn apply_after_at_least<'p>(
+        &self,
+        grid: &mut Grid<'p>,
+        puzzle: &Puzzle,
+        x: Label,
+        c: Category,
+        y: Label,
+        n: usize,
+    ) -> Option<bool> {
+        let mut changed = false;
+        // No overlap if x is after y.
+        changed |= grid.set_with_callback(x, y, Cell::No, || {
+            info!(
+                "    Constraint {} => {} ({}) must appear after {} ({})\n",
+                self.name,
+                puzzle.lookup_label(x),
+                puzzle.lookup_category(x.category),
+                puzzle.lookup_label(y),
+                puzzle.lookup_category(y.category),
+            );
+        })?;
+
+        // x must appear `n` after the appearance of y.
+        for i in 0..grid.labels_per_category {
+            if i < n {
+                changed |= grid.set_with_callback(x, Label::new(c, i), Cell::No, || {
+                    info!(
+                        "    Constraint {} => There must be {} in ({}) before {} ({})\n",
+                        self.name,
+                        n,
+                        puzzle.lookup_category(c),
+                        puzzle.lookup_label(x),
+                        puzzle.lookup_category(x.category),
+                    );
+                })?;
+            } else {
+                let l = Label::new(c, i - n);
+                if *grid.at(y, l) == Cell::No {
+                    grid.set_with_callback(x, Label::new(c, i), Cell::No, || {
+                        info!(
+                            "    Constraint {} => {} ({}) conflicts with {} ({}) due to distance\n",
+                            self.name,
+                            puzzle.lookup_label(x),
+                            puzzle.lookup_category(x.category),
+                            puzzle.lookup_label(y),
+                            puzzle.lookup_category(y.category),
+                        );
+                    })?;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        // y must appear before the appearance of x.
+        for i in (0..grid.labels_per_category).rev() {
+            if i + n >= grid.labels_per_category {
+                changed |= grid.set_with_callback(y, Label::new(c, i), Cell::No, || {
+                    info!(
+                        "    Constraint {} => There must be {} in ({}) after {} ({})\n",
+                        self.name,
+                        n,
+                        puzzle.lookup_category(c),
+                        puzzle.lookup_label(y),
+                        puzzle.lookup_category(y.category),
+                    );
+                })?;
+            } else {
+                let l = Label::new(c, i + n);
+                if *grid.at(x, l) == Cell::No {
+                    grid.set_with_callback(y, Label::new(c, i), Cell::No, || {
+                        info!(
+                            "    Constraint {} => {} ({}) conflicts with {} ({}) due to distance\n",
+                            self.name,
+                            puzzle.lookup_label(y),
+                            puzzle.lookup_category(y.category),
+                            puzzle.lookup_label(x),
+                            puzzle.lookup_category(x.category),
+                        );
+                    })?;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        Some(changed)
+    }
+
+    #[must_use]
+    fn apply_xor<'p>(
+        &self,
+        grid: &mut Grid<'p>,
+        puzzle: &Puzzle,
+        x: Label,
+        y: Label,
+        z: Label,
+    ) -> Option<bool> {
+        let mut changed = false;
+        changed |= grid.set(y, z, Cell::No)?;
+
+        // If one of them is No, the other must be Yes.
+        if *grid.at(x, y) == Cell::No {
+            changed |= grid.set_with_callback(x, z, Cell::Yes, || {
+                info!(
+                    "    Constraint {} => {} ({}) not with {} ({}), so must be with {} ({})\n",
+                    self.name,
+                    puzzle.lookup_label(x),
+                    puzzle.lookup_category(x.category),
+                    puzzle.lookup_label(y),
+                    puzzle.lookup_category(y.category),
+                    puzzle.lookup_label(z),
+                    puzzle.lookup_category(z.category),
+                );
+            })?;
+        } else if *grid.at(x, z) == Cell::No {
+            changed |= grid.set_with_callback(x, y, Cell::Yes, || {
+                info!(
+                    "    Constraint {} => {} ({}) not with {} ({}), so must be with {} ({})\n",
+                    self.name,
+                    puzzle.lookup_label(x),
+                    puzzle.lookup_category(x.category),
+                    puzzle.lookup_label(z),
+                    puzzle.lookup_category(z.category),
+                    puzzle.lookup_label(y),
+                    puzzle.lookup_category(y.category),
+                );
+            })?;
+        }
+
+        // If one of them is Yes, the other must be No.
+        if *grid.at(x, y) == Cell::Yes {
+            changed |= grid.set_with_callback(x, z, Cell::No, || {
+                info!(
+                    "    Constraint {} => {} ({}) with {} ({}), so can't be with {} ({})\n",
+                    self.name,
+                    puzzle.lookup_label(x),
+                    puzzle.lookup_category(x.category),
+                    puzzle.lookup_label(y),
+                    puzzle.lookup_category(y.category),
+                    puzzle.lookup_label(z),
+                    puzzle.lookup_category(z.category),
+                );
+            })?;
+        } else if *grid.at(x, z) == Cell::Yes {
+            changed |= grid.set_with_callback(x, y, Cell::No, || {
+                info!(
+                    "    Constraint {} => {} ({}) with {} ({}), so can't be with {} ({})\n",
+                    self.name,
+                    puzzle.lookup_label(x),
+                    puzzle.lookup_category(x.category),
+                    puzzle.lookup_label(z),
+                    puzzle.lookup_category(z.category),
+                    puzzle.lookup_label(y),
+                    puzzle.lookup_category(y.category),
+                );
+            })?;
+        }
+
+        // Now search for any existing labels which are neither,
+        // and eliminate them as possibilities.
+        for w in grid.labels() {
+            if w.category == x.category {
+                continue;
+            }
+            if *grid.at(y, w) == Cell::No && *grid.at(z, w) == Cell::No {
+                changed |= grid.set_with_callback(x, w, Cell::No, || {
+                    info!(
+                        "    Constraint {} => {} ({}) must be either {} ({}) or {} ({}), \
+conflicts with {} ({}) which is with neither\n",
+                        self.name,
+                        puzzle.lookup_label(x),
+                        puzzle.lookup_category(x.category),
+                        puzzle.lookup_label(z),
+                        puzzle.lookup_category(z.category),
+                        puzzle.lookup_label(y),
+                        puzzle.lookup_category(y.category),
+                        puzzle.lookup_label(w),
+                        puzzle.lookup_category(y.category),
+                    );
+                })?;
+            }
+            if *grid.at(y, w) == Cell::Yes && *grid.at(z, w) == Cell::Yes {
+                changed |= grid.set_with_callback(x, w, Cell::No, || {
+                    info!(
+                        "    Constraint {} => {} ({}) must be one of {} ({}) or {} ({}), \
+conflicts with {} ({}) which is with both\n",
+                        self.name,
+                        puzzle.lookup_label(x),
+                        puzzle.lookup_category(x.category),
+                        puzzle.lookup_label(z),
+                        puzzle.lookup_category(z.category),
+                        puzzle.lookup_label(y),
+                        puzzle.lookup_category(y.category),
+                        puzzle.lookup_label(w),
+                        puzzle.lookup_category(y.category),
+                    );
+                })?;
+            }
+        }
+        Some(changed)
+    }
+}
+
 impl Rule for Constraint {
     fn apply<'p>(&self, grid: &mut Grid<'p>, puzzle: &'p Puzzle) -> Option<bool> {
         let mut changed = false;
-        match self {
-            &Constraint::Yes(x, y) => {
-                changed |= grid.set(x, y, Cell::Yes)?;
+        match &self.kind {
+            &ConstraintKind::Yes(x, y) => {
+                changed |= grid.set_with_callback(x, y, Cell::Yes, || {
+                    info!(
+                        "Constraint {} => Direct confirmation on {} ({}) and {} ({})",
+                        self.name,
+                        puzzle.lookup_label(x),
+                        puzzle.lookup_category(x.category),
+                        puzzle.lookup_label(y),
+                        puzzle.lookup_category(y.category),
+                    );
+                })?;
             }
 
-            &Constraint::No(x, y) => {
-                changed |= grid.set(x, y, Cell::No)?;
+            &ConstraintKind::No(x, y) => {
+                changed |= grid.set_with_callback(x, y, Cell::No, || {
+                    info!(
+                        "Constraint {} => Direct elimination on {} ({}) and {} ({})",
+                        self.name,
+                        puzzle.lookup_label(x),
+                        puzzle.lookup_category(x.category),
+                        puzzle.lookup_label(y),
+                        puzzle.lookup_category(y.category),
+                    );
+                })?;
             }
 
-            &Constraint::After(x, c, y) => {
-                changed |= Constraint::AfterAtLeast(x, c, y, 1).apply(grid, puzzle)?;
+            &ConstraintKind::After(x, c, y) => {
+                changed |= self.apply_after_at_least(grid, puzzle, x, c, y, 1)?;
             }
 
-            &Constraint::AfterAtLeast(x, c, y, n) => {
-                // No overlap if x is after y.
-                changed |= grid.set(x, y, Cell::No)?;
-
-                // x must appear `n` after the appearance of y.
-                for i in 0..grid.labels_per_category {
-                    if i < n {
-                        changed |= grid.set(x, Label::new(c, i), Cell::No)?;
-                    } else {
-                        let l = Label::new(c, i - n);
-                        if *grid.at(y, l) == Cell::No {
-                            grid.set(x, Label::new(c, i), Cell::No)?;
-                        } else {
-                            break;
-                        }
-                    }
-                }
-
-                // y must appear before the appearance of x.
-                for i in (0..grid.labels_per_category).rev() {
-                    if i + n >= grid.labels_per_category {
-                        changed |= grid.set(y, Label::new(c, i), Cell::No)?;
-                    } else {
-                        let l = Label::new(c, i + n);
-                        if *grid.at(x, l) == Cell::No {
-                            grid.set(y, Label::new(c, i), Cell::No)?;
-                        } else {
-                            break;
-                        }
-                    }
-                }
+            &ConstraintKind::AfterAtLeast(x, c, y, n) => {
+                changed |= self.apply_after_at_least(grid, puzzle, x, c, y, n)?;
             }
 
-            &Constraint::AfterExactly(x, c, y, n) => {
+            &ConstraintKind::AfterExactly(x, c, y, n) => {
                 changed |= grid.set(x, y, Cell::No)?;
                 for i in 0..grid.labels_per_category {
                     if i < n {
@@ -112,7 +315,7 @@ impl Rule for Constraint {
                 }
             }
 
-            &Constraint::Distance(x, c, y, n) => {
+            &ConstraintKind::Distance(x, c, y, n) => {
                 changed |= grid.set(x, y, Cell::No)?;
                 for i in 0..grid.labels_per_category {
                     let cur = Label::new(c, i);
@@ -145,7 +348,7 @@ impl Rule for Constraint {
                 }
             }
 
-            &Constraint::Or(x, y, z) => {
+            &ConstraintKind::Or(x, y, z) => {
                 // If one of them is No, the other must be Yes.
                 if *grid.at(x, y) == Cell::No {
                     changed |= grid.set(x, z, Cell::Yes)?;
@@ -166,47 +369,19 @@ impl Rule for Constraint {
                 }
             }
 
-            &Constraint::Xor(x, y, z) => {
-                changed |= grid.set(y, z, Cell::No)?;
-
-                // If one of them is No, the other must be Yes.
-                if *grid.at(x, y) == Cell::No {
-                    changed |= grid.set(x, z, Cell::Yes)?;
-                } else if *grid.at(x, z) == Cell::No {
-                    changed |= grid.set(x, y, Cell::Yes)?;
-                }
-
-                // If one of them is Yes, the other must be No.
-                if *grid.at(x, y) == Cell::Yes {
-                    changed |= grid.set(x, z, Cell::No)?;
-                } else if *grid.at(x, z) == Cell::Yes {
-                    changed |= grid.set(x, y, Cell::No)?;
-                }
-
-                // Now search for any existing labels which are neither,
-                // and eliminate them as possibilities.
-                for w in grid.labels() {
-                    if w.category == x.category {
-                        continue;
-                    }
-                    if *grid.at(y, w) == Cell::No && *grid.at(z, w) == Cell::No {
-                        changed |= grid.set(x, w, Cell::No)?;
-                    }
-                    if *grid.at(y, w) == Cell::Yes && *grid.at(z, w) == Cell::Yes {
-                        changed |= grid.set(x, w, Cell::No)?;
-                    }
-                }
+            &ConstraintKind::Xor(x, y, z) => {
+                changed |= self.apply_xor(grid, puzzle, x, y, z)?;
             }
 
-            &Constraint::TwoByTwo(x1, x2, y1, y2) => {
+            &ConstraintKind::TwoByTwo(x1, x2, y1, y2) => {
                 // TwoByTwo is equivalent to having two Xors and a No.
                 changed |= grid.set(x1, x2, Cell::No)?;
                 changed |= grid.set(y1, y2, Cell::No)?;
-                changed |= Constraint::Xor(x1, y1, y2).apply(grid, puzzle)?;
-                changed |= Constraint::Xor(x2, y1, y2).apply(grid, puzzle)?;
+                changed |= self.apply_xor(grid, puzzle, x1, y1, y2)?;
+                changed |= self.apply_xor(grid, puzzle, x2, y1, y2)?;
             }
 
-            Constraint::ExactlyOne(constraints) => {
+            ConstraintKind::ExactlyOne(constraints) => {
                 let mut found_yes = false;
                 let mut num_no = 0;
 
