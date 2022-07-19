@@ -1,6 +1,6 @@
 use crate::constraint::Constraint;
+use anyhow::{Context, Result};
 use bimap::BiMap;
-use snafu::Snafu;
 use std::fs::File;
 use std::io::BufRead;
 use std::path::Path;
@@ -25,38 +25,42 @@ impl Label {
     }
 }
 
-#[derive(Debug, Snafu)]
-pub enum Error {
-    #[snafu(display("Invalid label name: {}", name))]
+#[derive(Debug, thiserror::Error)]
+pub enum PuzzleError {
+    #[error("Invalid label name: {}", name)]
     InvalidLabelName { name: String },
-    #[snafu(display("Missing [Categories] marker"))]
+    #[error("Missing [Categories] marker")]
     MissingCategories,
-    #[snafu(display("Missing [Clues] marker"))]
+    #[error("Missing [Clues] marker")]
     MissingClues,
-    #[snafu(display("Invalid Clue: {}", clue))]
+    #[error("Invalid Clue: {}", clue)]
     InvalidClue { clue: String },
-    #[snafu(display(
+    #[error(
         "Invalid number of labels in category \"{}\", expected {} but found {}",
         category,
         expected,
-        found,
-    ))]
+        found
+    )]
     InvalidLabelCount {
         category: String,
         expected: usize,
         found: usize,
     },
-    #[snafu(display("Category not found: {}", name))]
+    #[error("Category not found: {}", name)]
     CategoryNotFound { name: String },
-    #[snafu(display("Label not found: {}", name))]
+    #[error("Label not found: {}", name)]
     LabelNotFound { name: String },
-    #[snafu(context(false))]
-    Io { source: std::io::Error },
-    #[snafu(context(false))]
-    InvalidInteger { source: std::num::ParseIntError },
+    #[error(transparent)]
+    Io {
+        #[from]
+        source: std::io::Error,
+    },
+    #[error(transparent)]
+    InvalidInteger {
+        #[from]
+        source: anyhow::Error,
+    },
 }
-
-pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 /// The actual puzzle to be solved.
 #[derive(Debug, Default)]
@@ -74,7 +78,7 @@ pub struct Puzzle {
 impl Puzzle {
     /// Parse a puzzle file from `path` and return the resultant Puzzle
     /// if the file was a valid puzzle file.
-    pub fn from_file(path: &Path) -> Result<Self> {
+    pub fn from_file(path: &Path) -> Result<Self, PuzzleError> {
         let file = File::open(path)?;
         let mut lines = std::io::BufReader::new(file).lines();
         let mut puzzle = Self::default();
@@ -86,7 +90,7 @@ impl Puzzle {
                     }
                 }
                 _ => {
-                    return Err(Error::MissingCategories);
+                    return Err(PuzzleError::MissingCategories);
                 }
             };
         }
@@ -100,7 +104,7 @@ impl Puzzle {
                     line
                 }
                 _ => {
-                    return Err(Error::MissingClues);
+                    return Err(PuzzleError::MissingClues);
                 }
             };
             let mut labels = vec![];
@@ -113,14 +117,14 @@ impl Puzzle {
                         labels.push(line);
                     }
                     _ => {
-                        return Err(Error::MissingClues);
+                        return Err(PuzzleError::MissingClues);
                     }
                 };
             }
             puzzle.add_category(&category_name, &labels)?;
         }
 
-        for line in lines {
+        for (line_number, line) in lines.enumerate() {
             let line = line?;
             let parts = line
                 .trim()
@@ -129,30 +133,24 @@ impl Puzzle {
                 .map(|s| s.trim())
                 .collect::<Vec<&str>>();
             if parts.len() < 2 {
-                return Err(Error::InvalidClue { clue: line });
+                return Err(PuzzleError::InvalidClue { clue: line });
             }
             let constraint = match parts[0] {
                 "yes" => {
                     if parts.len() < 3 {
-                        return Err(Error::InvalidClue { clue: line });
+                        return Err(PuzzleError::InvalidClue { clue: line });
                     }
-                    Constraint::Yes(
-                        puzzle.label(parts[1])?,
-                        puzzle.label(parts[2])?,
-                    )
+                    Constraint::Yes(puzzle.label(parts[1])?, puzzle.label(parts[2])?)
                 }
                 "no" => {
                     if parts.len() < 3 {
-                        return Err(Error::InvalidClue { clue: line });
+                        return Err(PuzzleError::InvalidClue { clue: line });
                     }
-                    Constraint::No(
-                        puzzle.label(parts[1])?,
-                        puzzle.label(parts[2])?,
-                    )
+                    Constraint::No(puzzle.label(parts[1])?, puzzle.label(parts[2])?)
                 }
                 "after" => {
                     if parts.len() < 4 {
-                        return Err(Error::InvalidClue { clue: line });
+                        return Err(PuzzleError::InvalidClue { clue: line });
                     }
                     Constraint::After(
                         puzzle.label(parts[1])?,
@@ -162,11 +160,14 @@ impl Puzzle {
                 }
                 "afteratleast" => {
                     if parts.len() < 4 {
-                        return Err(Error::InvalidClue { clue: line });
+                        return Err(PuzzleError::InvalidClue { clue: line });
                     }
-                    let n: usize = parts[4].parse()?;
+                    let n: usize = parts[4]
+                        .parse()
+                        .with_context(|| format!("in line {}", line_number))
+                        .map_err(|e| PuzzleError::InvalidInteger { source: e })?;
                     if n > puzzle.labels_per_category() - 1 {
-                        return Err(Error::InvalidClue { clue: line });
+                        return Err(PuzzleError::InvalidClue { clue: line });
                     }
                     Constraint::AfterAtLeast(
                         puzzle.label(parts[1])?,
@@ -177,11 +178,14 @@ impl Puzzle {
                 }
                 "afterexactly" => {
                     if parts.len() < 4 {
-                        return Err(Error::InvalidClue { clue: line });
+                        return Err(PuzzleError::InvalidClue { clue: line });
                     }
-                    let n: usize = parts[4].parse()?;
+                    let n: usize = parts[4]
+                        .parse()
+                        .with_context(|| format!("in line {}", line_number))
+                        .map_err(|e| PuzzleError::InvalidInteger { source: e })?;
                     if n > puzzle.labels_per_category() - 1 {
-                        return Err(Error::InvalidClue { clue: line });
+                        return Err(PuzzleError::InvalidClue { clue: line });
                     }
                     Constraint::AfterExactly(
                         puzzle.label(parts[1])?,
@@ -192,7 +196,7 @@ impl Puzzle {
                 }
                 "or" => {
                     if parts.len() < 4 {
-                        return Err(Error::InvalidClue { clue: line });
+                        return Err(PuzzleError::InvalidClue { clue: line });
                     }
                     Constraint::Or(
                         puzzle.label(parts[1])?,
@@ -202,7 +206,7 @@ impl Puzzle {
                 }
                 "xor" => {
                     if parts.len() < 4 {
-                        return Err(Error::InvalidClue { clue: line });
+                        return Err(PuzzleError::InvalidClue { clue: line });
                     }
                     Constraint::Xor(
                         puzzle.label(parts[1])?,
@@ -212,7 +216,7 @@ impl Puzzle {
                 }
                 "twobytwo" => {
                     if parts.len() < 5 {
-                        return Err(Error::InvalidClue { clue: line });
+                        return Err(PuzzleError::InvalidClue { clue: line });
                     }
                     Constraint::TwoByTwo(
                         puzzle.label(parts[1])?,
@@ -223,7 +227,7 @@ impl Puzzle {
                 }
                 "exactlyone" => {
                     if parts.len() < 5 || parts.len() % 2 != 1 {
-                        return Err(Error::InvalidClue { clue: line });
+                        return Err(PuzzleError::InvalidClue { clue: line });
                     }
                     let mut constraints = vec![];
                     for i in 0..parts.len() / 2 {
@@ -234,7 +238,7 @@ impl Puzzle {
                     }
                     Constraint::ExactlyOne(constraints)
                 }
-                _ => return Err(Error::InvalidClue { clue: line }),
+                _ => return Err(PuzzleError::InvalidClue { clue: line }),
             };
             puzzle.add_constraint(constraint);
         }
@@ -246,11 +250,9 @@ impl Puzzle {
         &mut self,
         cat_name: &str,
         label_names: &[S],
-    ) -> Result<Category> {
-        if !self.category_map.is_empty()
-            && label_names.len() != self.labels_per_category()
-        {
-            return Err(Error::InvalidLabelCount {
+    ) -> Result<Category, PuzzleError> {
+        if !self.category_map.is_empty() && label_names.len() != self.labels_per_category() {
+            return Err(PuzzleError::InvalidLabelCount {
                 category: cat_name.to_string(),
                 expected: self.labels_per_category(),
                 found: label_names.len(),
@@ -259,7 +261,7 @@ impl Puzzle {
         let category = Category(self.category_map.len());
         for (i, name) in label_names.iter().enumerate() {
             if self.label(name.as_ref()).is_ok() {
-                return Err(Error::InvalidLabelName {
+                return Err(PuzzleError::InvalidLabelName {
                     name: name.as_ref().to_string(),
                 });
             }
@@ -274,10 +276,10 @@ impl Puzzle {
         self.category_map.get_by_left(&category).unwrap()
     }
 
-    pub fn category(&self, name: &str) -> Result<Category> {
+    pub fn category(&self, name: &str) -> Result<Category, PuzzleError> {
         let result = self.category_map.get_by_right(&name.to_string()).copied();
         match &result {
-            None => Err(Error::CategoryNotFound {
+            None => Err(PuzzleError::CategoryNotFound {
                 name: name.to_string(),
             }),
             &Some(category) => Ok(category),
@@ -288,10 +290,10 @@ impl Puzzle {
         self.label_map.get_by_left(&label).unwrap()
     }
 
-    pub fn label(&self, name: &str) -> Result<Label> {
+    pub fn label(&self, name: &str) -> Result<Label, PuzzleError> {
         let result = self.label_map.get_by_right(&name.to_string()).copied();
         match &result {
-            None => Err(Error::LabelNotFound {
+            None => Err(PuzzleError::LabelNotFound {
                 name: name.to_string(),
             }),
             &Some(label) => Ok(label),

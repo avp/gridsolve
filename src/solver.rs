@@ -10,6 +10,7 @@ use std::fmt;
 struct SolutionRow(Vec<Option<Label>>);
 
 /// The actual solution to a puzzle.
+/// Stores a reference to the puzzle itself.
 #[derive(Debug, Serialize)]
 #[serde(transparent)]
 pub struct Solution<'p> {
@@ -36,8 +37,7 @@ impl<'p> fmt::Display for Solution<'p> {
         for soln_row in &self.labels {
             let mut table_row = Row::empty();
             for cat in 0..self.puzzle.num_categories() {
-                let second =
-                    soln_row[self.puzzle.lookup_category(Category(cat))];
+                let second = soln_row[self.puzzle.lookup_category(Category(cat))];
                 let name = second.unwrap_or("");
                 table_row.add_cell(Cell::new(name));
             }
@@ -47,6 +47,10 @@ impl<'p> fmt::Display for Solution<'p> {
     }
 }
 
+/// Cell in the "grid puzzle" format for the logic puzzle.
+/// Empty by default.
+/// `Yes` and `No` indicate definite confirmations of whether or not the corresponding grid
+/// has been filled in.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Cell {
     Empty,
@@ -66,7 +70,7 @@ pub struct Grid<'p> {
     cells: Vec<Vec<Cell>>,
 
     /// The associated puzzle for the grid.
-    puzzle: &'p Puzzle,
+    pub puzzle: &'p Puzzle,
 
     /// The number of labels per category in the puzzle.
     pub labels_per_category: usize,
@@ -82,11 +86,7 @@ impl<'p> Grid<'p> {
                 for cat2 in 0..puzzle.num_categories() {
                     for l2 in 0..labels_per_category {
                         if cat1 == cat2 {
-                            row.push(if l1 == l2 {
-                                Cell::Yes
-                            } else {
-                                Cell::No
-                            });
+                            row.push(if l1 == l2 { Cell::Yes } else { Cell::No });
                         } else {
                             row.push(Cell::Empty);
                         }
@@ -99,10 +99,7 @@ impl<'p> Grid<'p> {
             cells[0].len(),
             puzzle.num_categories() * labels_per_category
         );
-        debug_assert_eq!(
-            cells.len(),
-            puzzle.num_categories() * labels_per_category
-        );
+        debug_assert_eq!(cells.len(), puzzle.num_categories() * labels_per_category);
         Grid {
             cells,
             puzzle,
@@ -139,14 +136,9 @@ impl<'p> Grid<'p> {
     /// Set the cell `(label1, label2)` in the grid to `val`.
     /// Returns `None` if the attempt to set was contradictory,
     /// otherwise returns `Some(changed)` where `changed` is true iff
-    /// the cell was changed from its initial value.
+    /// the cell was changed from its initial value and calls the callback.
     #[must_use]
-    pub fn set(
-        &mut self,
-        label1: Label,
-        label2: Label,
-        val: Cell,
-    ) -> Option<bool> {
+    pub fn set(&mut self, label1: Label, label2: Label, val: Cell) -> Option<bool> {
         debug_assert_ne!(val, Cell::Empty);
         let c = self.at(label1, label2);
         match *c {
@@ -176,6 +168,25 @@ impl<'p> Grid<'p> {
         }
     }
 
+    /// Call `set` but if it succeeds also call the `callback`.
+    /// This can be used for logging information if the set goes through.
+    #[must_use]
+    pub fn set_with_callback<CB: FnOnce()>(
+        &mut self,
+        label1: Label,
+        label2: Label,
+        val: Cell,
+        callback: CB,
+    ) -> Option<bool> {
+        match self.set(label1, label2, val) {
+            Some(true) => {
+                callback();
+                Some(true)
+            }
+            res => res,
+        }
+    }
+
     /// Iterate over every category in the grid.
     pub fn categories(&self) -> impl Iterator<Item = Category> {
         let num_categories = self.puzzle.num_categories();
@@ -193,12 +204,6 @@ impl<'p> Grid<'p> {
         })
     }
 
-    /// Return the user-facing string associated with `label`.
-    #[allow(dead_code)]
-    pub fn label_str(&self, label: Label) -> &str {
-        self.puzzle.lookup_label(label)
-    }
-
     /// Iterate through every cell in the grid, skipping any redundant labels.
     /// If `(x,y)` is included in the iterator, then `(y,x)` is not.
     /// `(x,y)` is not included if `x.category == y.category`.
@@ -210,10 +215,7 @@ impl<'p> Grid<'p> {
             let (c1, l1) = (i1 / labels_per_category, i1 % labels_per_category);
             let (c2, l2) = (i2 / labels_per_category, i2 % labels_per_category);
             if c1 < c2 {
-                Some((
-                    Label::new(Category(c1), l1),
-                    Label::new(Category(c2), l2),
-                ))
+                Some((Label::new(Category(c1), l1), Label::new(Category(c2), l2)))
             } else {
                 None
             }
@@ -236,6 +238,7 @@ impl<'p> Solver<'p> {
     pub fn solve(mut self) -> Option<Solution<'p>> {
         let mut changed = true;
 
+        // List of rules to attempt to execute.
         let rules: &[Box<dyn Rule>] = &[
             Box::new(ElimOthers {}),
             Box::new(OnlyEmpty {}),
@@ -243,15 +246,17 @@ impl<'p> Solver<'p> {
             Box::new(NoByProxy {}),
         ];
 
+        // Run the rules in a loop until we hit a fixed point or a contradictory condition.
+        // Hopefully that's a solution.
         while changed {
             changed = false;
             info!("Running constraints...\n");
             for constraint in self.puzzle.constraints() {
-                changed |= constraint.apply(&mut self.grid)?;
+                changed |= constraint.apply(&mut self.grid, self.puzzle)?;
             }
 
             for rule in rules {
-                changed |= rule.apply(&mut self.grid)?;
+                changed |= rule.apply(&mut self.grid, self.puzzle)?;
             }
         }
         Some(self.solution())

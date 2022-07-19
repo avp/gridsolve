@@ -4,7 +4,7 @@ use log::info;
 
 pub trait Rule {
     /// Return whether the application altered the grid at all.
-    fn apply(&self, grid: &mut Grid) -> Option<bool>;
+    fn apply<'p>(&self, grid: &mut Grid<'p>, puzzle: &'p Puzzle) -> Option<bool>;
 }
 
 /// Eliminate the other cells in the row/column of a Yes cell.
@@ -13,7 +13,7 @@ pub trait Rule {
 pub struct ElimOthers {}
 
 impl Rule for ElimOthers {
-    fn apply(&self, grid: &mut Grid) -> Option<bool> {
+    fn apply<'p>(&self, grid: &mut Grid<'p>, puzzle: &'p Puzzle) -> Option<bool> {
         info!("Running ElimOthers...\n");
         let mut changed = false;
         for (l1, l2) in grid.cells() {
@@ -26,7 +26,17 @@ impl Rule for ElimOthers {
                         category: l2.category,
                         label: l,
                     };
-                    changed |= grid.set(l1, l3, Cell::No)?;
+                    changed |= grid.set_with_callback(l1, l3, Cell::No, || {
+                        info!(
+                            "    {} ({}) is already set to {} ({}), eliminating {} ({})\n",
+                            puzzle.lookup_label(l1),
+                            puzzle.lookup_category(l1.category),
+                            puzzle.lookup_label(l2),
+                            puzzle.lookup_category(l2.category),
+                            puzzle.lookup_label(l3),
+                            puzzle.lookup_category(l3.category),
+                        );
+                    })?;
                 }
                 for l in 0..grid.labels_per_category {
                     if l == l1.label {
@@ -36,7 +46,17 @@ impl Rule for ElimOthers {
                         category: l1.category,
                         label: l,
                     };
-                    changed |= grid.set(l3, l2, Cell::No)?;
+                    changed |= grid.set_with_callback(l3, l2, Cell::No, || {
+                        info!(
+                            "    {} ({}) is already set to {} ({}), eliminating {} ({})\n",
+                            puzzle.lookup_label(l2),
+                            puzzle.lookup_category(l2.category),
+                            puzzle.lookup_label(l1),
+                            puzzle.lookup_category(l1.category),
+                            puzzle.lookup_label(l3),
+                            puzzle.lookup_category(l3.category),
+                        );
+                    })?;
                 }
             }
         }
@@ -49,12 +69,13 @@ impl Rule for ElimOthers {
 pub struct OnlyEmpty {}
 
 impl Rule for OnlyEmpty {
-    fn apply(&self, grid: &mut Grid) -> Option<bool> {
+    fn apply<'p>(&self, grid: &mut Grid<'p>, puzzle: &'p Puzzle) -> Option<bool> {
         info!("Running OnlyEmpty...\n");
         let mut changed = false;
         for (l1, l2) in grid.cells() {
             if *grid.at(l1, l2) == Cell::Empty {
                 let mut only = true;
+                // Check all in the l1 row, skipping l2.
                 for l in 0..grid.labels_per_category {
                     if l == l2.label {
                         continue;
@@ -69,11 +90,20 @@ impl Rule for OnlyEmpty {
                 }
 
                 if only {
-                    changed |= grid.set(l1, l2, Cell::Yes)?;
+                    changed |= grid.set_with_callback(l1, l2, Cell::Yes, || {
+                        info!(
+                            "    {} ({}) is the only possibility for {} ({})\n",
+                            puzzle.lookup_label(l2),
+                            puzzle.lookup_category(l2.category),
+                            puzzle.lookup_label(l1),
+                            puzzle.lookup_category(l1.category),
+                        );
+                    })?;
                     continue;
                 }
 
                 only = true;
+                // Check all in the l2 row, skipping l1.
                 for l in 0..grid.labels_per_category {
                     if l == l1.label {
                         continue;
@@ -89,6 +119,15 @@ impl Rule for OnlyEmpty {
 
                 if only {
                     changed |= grid.set(l1, l2, Cell::Yes)?;
+                    grid.set_with_callback(l1, l2, Cell::Yes, || {
+                        info!(
+                            "    {} ({}) is the only possibility for {} ({})\n",
+                            puzzle.lookup_label(l1),
+                            puzzle.lookup_category(l1.category),
+                            puzzle.lookup_label(l2),
+                            puzzle.lookup_category(l2.category),
+                        );
+                    })?;
                     continue;
                 }
             }
@@ -102,7 +141,7 @@ impl Rule for OnlyEmpty {
 pub struct Transitivity {}
 
 impl Rule for Transitivity {
-    fn apply(&self, grid: &mut Grid) -> Option<bool> {
+    fn apply<'p>(&self, grid: &mut Grid<'p>, _puzzle: &'p Puzzle) -> Option<bool> {
         info!("Running Transitivity...\n");
         let mut changed = false;
         for (x, y) in grid.cells() {
@@ -130,7 +169,7 @@ impl Rule for Transitivity {
 pub struct NoByProxy {}
 
 impl Rule for NoByProxy {
-    fn apply(&self, grid: &mut Grid) -> Option<bool> {
+    fn apply<'p>(&self, grid: &mut Grid<'p>, puzzle: &'p Puzzle) -> Option<bool> {
         info!("Running NoByProxy...\n");
         let mut changed = false;
         for (x, y) in grid.cells() {
@@ -148,8 +187,7 @@ impl Rule for NoByProxy {
                 let mut has_path = false;
                 for i in 0..grid.labels_per_category {
                     let z = Label::new(cz, i);
-                    if *grid.at(x, z) != Cell::No && *grid.at(y, z) != Cell::No
-                    {
+                    if *grid.at(x, z) != Cell::No && *grid.at(y, z) != Cell::No {
                         // (x,y) == Yes is reconcilable in category cz.
                         has_path = true;
                         // Stop iteration because we can never break the path now.
@@ -158,7 +196,16 @@ impl Rule for NoByProxy {
                 }
                 if !has_path {
                     // No path in one category, no point trying the rest.
-                    changed |= grid.set(x, y, Cell::No)?;
+                    changed |= grid.set_with_callback(x, y, Cell::No, || {
+                        info!(
+                            "{} ({}) is irreconcilable with {} ({}) in category {}",
+                            puzzle.lookup_label(x),
+                            puzzle.lookup_category(cx),
+                            puzzle.lookup_label(y),
+                            puzzle.lookup_category(cy),
+                            puzzle.lookup_category(cz),
+                        );
+                    })?;
                     break;
                 }
             }

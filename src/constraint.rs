@@ -40,7 +40,7 @@ pub enum Constraint {
 }
 
 impl Rule for Constraint {
-    fn apply(&self, grid: &mut Grid) -> Option<bool> {
+    fn apply<'p>(&self, grid: &mut Grid<'p>, puzzle: &'p Puzzle) -> Option<bool> {
         let mut changed = false;
         match self {
             &Constraint::Yes(x, y) => {
@@ -52,7 +52,7 @@ impl Rule for Constraint {
             }
 
             &Constraint::After(x, c, y) => {
-                changed |= Constraint::AfterAtLeast(x, c, y, 1).apply(grid)?;
+                changed |= Constraint::AfterAtLeast(x, c, y, 1).apply(grid, puzzle)?;
             }
 
             &Constraint::AfterAtLeast(x, c, y, n) => {
@@ -156,14 +156,10 @@ impl Rule for Constraint {
                 // Now search for any existing labels which are neither,
                 // and eliminate them as possibilities.
                 for attempt in grid.labels() {
-                    let first = (attempt.category == y.category
-                        && attempt.label != y.label)
-                        || (attempt.category != y.category
-                            && *grid.at(attempt, y) == Cell::No);
-                    let second = (attempt.category == z.category
-                        && attempt.label != z.label)
-                        || (attempt.category != z.category
-                            && *grid.at(attempt, z) == Cell::No);
+                    let first = (attempt.category == y.category && attempt.label != y.label)
+                        || (attempt.category != y.category && *grid.at(attempt, y) == Cell::No);
+                    let second = (attempt.category == z.category && attempt.label != z.label)
+                        || (attempt.category != z.category && *grid.at(attempt, z) == Cell::No);
                     if first && second {
                         changed |= grid.set(attempt, x, Cell::No)?;
                     }
@@ -193,13 +189,10 @@ impl Rule for Constraint {
                     if w.category == x.category {
                         continue;
                     }
-                    if *grid.at(y, w) == Cell::No && *grid.at(z, w) == Cell::No
-                    {
+                    if *grid.at(y, w) == Cell::No && *grid.at(z, w) == Cell::No {
                         changed |= grid.set(x, w, Cell::No)?;
                     }
-                    if *grid.at(y, w) == Cell::Yes
-                        && *grid.at(z, w) == Cell::Yes
-                    {
+                    if *grid.at(y, w) == Cell::Yes && *grid.at(z, w) == Cell::Yes {
                         changed |= grid.set(x, w, Cell::No)?;
                     }
                 }
@@ -209,8 +202,8 @@ impl Rule for Constraint {
                 // TwoByTwo is equivalent to having two Xors and a No.
                 changed |= grid.set(x1, x2, Cell::No)?;
                 changed |= grid.set(y1, y2, Cell::No)?;
-                changed |= Constraint::Xor(x1, y1, y2).apply(grid)?;
-                changed |= Constraint::Xor(x2, y1, y2).apply(grid)?;
+                changed |= Constraint::Xor(x1, y1, y2).apply(grid, puzzle)?;
+                changed |= Constraint::Xor(x2, y1, y2).apply(grid, puzzle)?;
             }
 
             Constraint::ExactlyOne(constraints) => {
