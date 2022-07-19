@@ -126,12 +126,9 @@ impl Puzzle {
 
         for (line_number, line) in lines.enumerate() {
             let line = line?;
-            let parts = line
-                .trim()
-                .split(',')
-                .skip(1)
-                .map(|s| s.trim())
-                .collect::<Vec<&str>>();
+            let mut parts = line.trim().split(',').skip(1).collect::<Vec<&str>>();
+            let constraint_name = parts[0];
+            parts.remove(0);
             if parts.len() < 2 {
                 return Err(PuzzleError::InvalidClue { clue: line });
             }

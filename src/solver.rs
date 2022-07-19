@@ -144,10 +144,10 @@ impl<'p> Grid<'p> {
         match *c {
             Cell::Empty => {
                 info!(
-                    "  {} | {} => {:?}\n",
+                    "  {} : {} & {}\n",
+                    if val == Cell::Yes { "✔" } else { "❌" },
                     self.puzzle.lookup_label(label1),
                     self.puzzle.lookup_label(label2),
-                    val
                 );
                 *self.at_mut(label1, label2) = val;
                 Some(true)

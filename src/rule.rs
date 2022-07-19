@@ -141,17 +141,38 @@ impl Rule for OnlyEmpty {
 pub struct Transitivity {}
 
 impl Rule for Transitivity {
-    fn apply<'p>(&self, grid: &mut Grid<'p>, _puzzle: &'p Puzzle) -> Option<bool> {
+    fn apply<'p>(&self, grid: &mut Grid<'p>, puzzle: &'p Puzzle) -> Option<bool> {
         info!("Running Transitivity...\n");
         let mut changed = false;
         for (x, y) in grid.cells() {
+            let (cx, cy) = (x.category, y.category);
             if *grid.at(x, y) == Cell::Yes {
                 for z in grid.labels() {
                     if *grid.at(x, z) == Cell::Yes {
-                        changed |= grid.set(y, z, Cell::Yes)?;
+                        changed |= grid.set_with_callback(y, z, Cell::Yes, || {
+                            info!(
+                                "    {} ({}) and {} ({}) share {} ({})\n",
+                                puzzle.lookup_label(y),
+                                puzzle.lookup_category(cy),
+                                puzzle.lookup_label(z),
+                                puzzle.lookup_category(z.category),
+                                puzzle.lookup_label(x),
+                                puzzle.lookup_category(cx),
+                            );
+                        })?;
                     }
                     if *grid.at(y, z) == Cell::Yes {
-                        changed |= grid.set(x, z, Cell::Yes)?;
+                        changed |= grid.set_with_callback(x, z, Cell::Yes, || {
+                            info!(
+                                "    {} ({}) and {} ({}) share {} ({})\n",
+                                puzzle.lookup_label(x),
+                                puzzle.lookup_category(cx),
+                                puzzle.lookup_label(z),
+                                puzzle.lookup_category(z.category),
+                                puzzle.lookup_label(y),
+                                puzzle.lookup_category(cy),
+                            );
+                        })?;
                     }
                 }
             }
@@ -198,7 +219,7 @@ impl Rule for NoByProxy {
                     // No path in one category, no point trying the rest.
                     changed |= grid.set_with_callback(x, y, Cell::No, || {
                         info!(
-                            "{} ({}) is irreconcilable with {} ({}) in category {}",
+                            "    {} ({}) is irreconcilable with {} ({}): cannot share ({})\n",
                             puzzle.lookup_label(x),
                             puzzle.lookup_category(cx),
                             puzzle.lookup_label(y),
