@@ -3,7 +3,6 @@
 use crate::puzzle::*;
 use crate::rule::Rule;
 use crate::solver::{Cell, Grid};
-use log::info;
 
 #[derive(Debug)]
 pub enum ConstraintKind {
@@ -148,7 +147,18 @@ impl Constraint {
         z: Label,
     ) -> Option<bool> {
         let mut changed = false;
-        changed |= grid.set(y, z, Cell::No)?;
+        changed |= grid.set_with_callback(y, z, Cell::No, || {
+            info!(
+                "    Constraint {} => {} ({}) requires {} ({}) xor {} ({}), can't be the same\n",
+                self.name,
+                puzzle.lookup_label(x),
+                puzzle.lookup_category(x.category),
+                puzzle.lookup_label(y),
+                puzzle.lookup_category(y.category),
+                puzzle.lookup_label(z),
+                puzzle.lookup_category(z.category),
+            );
+        })?;
 
         // If one of them is No, the other must be Yes.
         if *grid.at(x, y) == Cell::No {
@@ -292,7 +302,16 @@ impl Rule for Constraint {
             }
 
             &ConstraintKind::AfterExactly(x, c, y, n) => {
-                changed |= grid.set(x, y, Cell::No)?;
+                changed |= grid.set_with_callback(x, y, Cell::No, || {
+                    info!(
+                        "    Constraint {} => {} ({}) after {} ({}), so must different\n",
+                        self.name,
+                        puzzle.lookup_label(x),
+                        puzzle.lookup_category(x.category),
+                        puzzle.lookup_label(y),
+                        puzzle.lookup_category(y.category),
+                    );
+                })?;
                 for i in 0..grid.labels_per_category {
                     if i < n {
                         changed |= grid.set_with_callback(x, Label::new(c, i), Cell::No, || {

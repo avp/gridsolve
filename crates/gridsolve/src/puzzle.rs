@@ -311,6 +311,10 @@ impl Puzzle {
         self.category_map.len()
     }
 
+    pub fn categories(&self) -> impl Iterator<Item = Category> {
+        (0..self.num_categories()).map(Category)
+    }
+
     pub fn labels_per_category(&self) -> usize {
         debug_assert!(!self.category_map.is_empty());
         self.label_map.len() / self.num_categories()

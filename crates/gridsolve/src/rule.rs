@@ -1,6 +1,6 @@
 use crate::puzzle::*;
 use crate::solver::*;
-use log::info;
+use crate::{error, info};
 
 pub trait Rule {
     /// Return whether the application altered the grid at all.

@@ -1,6 +1,6 @@
 extern crate gridsolve;
 
-use gridsolve::{solve, Puzzle};
+use gridsolve::{solve, Puzzle, Solution};
 use log::{error, LevelFilter};
 use log4rs::{
     append::console::ConsoleAppender,
@@ -24,6 +24,26 @@ struct Opt {
     /// Input file, formatted as a grid puzzle
     #[structopt(parse(from_os_str))]
     input: PathBuf,
+}
+
+fn pretty_solution(solution: &Solution) -> String {
+    use prettytable::*;
+    let mut table = Table::new();
+    let mut row = Row::empty();
+    for cat in solution.puzzle.categories() {
+        row.add_cell(Cell::new(solution.puzzle.lookup_category(cat)));
+    }
+    table.add_row(row);
+    for soln_row in &solution.labels {
+        let mut table_row = Row::empty();
+        for cat in solution.puzzle.categories() {
+            let second = soln_row[solution.puzzle.lookup_category(cat)];
+            let name = second.unwrap_or("");
+            table_row.add_cell(Cell::new(name));
+        }
+        table.add_row(table_row);
+    }
+    format!("{}", table)
 }
 
 fn main() {
@@ -60,6 +80,6 @@ fn main() {
     if opt.json {
         println!("{}", serde_json::to_string(&solution).unwrap());
     } else {
-        println!("{}", solution);
+        println!("{}", pretty_solution(&solution));
     }
 }

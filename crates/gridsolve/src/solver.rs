@@ -1,7 +1,6 @@
 use crate::puzzle::*;
 use crate::rule::*;
 use itertools::iproduct;
-use log::{error, info};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt;
@@ -22,29 +21,7 @@ pub struct Solution<'p> {
 
     /// The puzzle that this is the solution for.
     #[serde(skip)]
-    puzzle: &'p Puzzle,
-}
-
-impl<'p> fmt::Display for Solution<'p> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use prettytable::*;
-        let mut table = Table::new();
-        let mut row = Row::empty();
-        for cat in 0..self.puzzle.num_categories() {
-            row.add_cell(Cell::new(self.puzzle.lookup_category(Category(cat))));
-        }
-        table.add_row(row);
-        for soln_row in &self.labels {
-            let mut table_row = Row::empty();
-            for cat in 0..self.puzzle.num_categories() {
-                let second = soln_row[self.puzzle.lookup_category(Category(cat))];
-                let name = second.unwrap_or("");
-                table_row.add_cell(Cell::new(name));
-            }
-            table.add_row(table_row);
-        }
-        write!(f, "{}", table)
-    }
+    pub puzzle: &'p Puzzle,
 }
 
 /// Cell in the "grid puzzle" format for the logic puzzle.
