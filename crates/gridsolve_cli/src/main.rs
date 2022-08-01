@@ -26,7 +26,7 @@ struct Opt {
     input: PathBuf,
 }
 
-fn pretty_solution(solution: &Solution) -> String {
+fn pretty_solution(solution: &Solution) -> prettytable::Table {
     use prettytable::*;
     let mut table = Table::new();
     let mut row = Row::empty();
@@ -43,7 +43,7 @@ fn pretty_solution(solution: &Solution) -> String {
         }
         table.add_row(table_row);
     }
-    format!("{}", table)
+    table
 }
 
 fn main() {
