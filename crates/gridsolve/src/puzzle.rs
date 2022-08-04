@@ -2,7 +2,7 @@ use crate::constraint::{Constraint, ConstraintKind};
 use anyhow::{Context, Result};
 use bimap::BiMap;
 use std::fs::File;
-use std::io::BufRead;
+use std::io::{BufRead, Lines, Read};
 use std::path::Path;
 
 /// A category index in the puzzle.
@@ -79,12 +79,18 @@ impl Puzzle {
     /// Parse a puzzle file from `path` and return the resultant Puzzle
     /// if the file was a valid puzzle file.
     pub fn from_file(path: &Path) -> Result<Self, PuzzleError> {
-        let file = File::open(path)?;
-        let mut lines = std::io::BufReader::new(file).lines();
+        let file = std::fs::read_to_string(path)?;
+        Puzzle::parse(&file)
+    }
+
+    /// Parse a puzzle file from `path` and return the resultant Puzzle
+    /// if the file was a valid puzzle file.
+    pub fn parse(string: &str) -> Result<Self, PuzzleError> {
+        let mut lines = string.trim().lines();
         let mut puzzle = Self::default();
         loop {
             match lines.next() {
-                Some(Ok(line)) => {
+                Some(line) => {
                     if line.trim() == "[Categories]" {
                         break;
                     }
@@ -97,7 +103,7 @@ impl Puzzle {
 
         loop {
             let category_name = match lines.next() {
-                Some(Ok(line)) => {
+                Some(line) => {
                     if line.trim() == "[Clues]" {
                         break;
                     }
@@ -110,7 +116,7 @@ impl Puzzle {
             let mut labels = vec![];
             loop {
                 match lines.next() {
-                    Some(Ok(line)) => {
+                    Some(line) => {
                         if line.trim().is_empty() {
                             break;
                         }
@@ -121,11 +127,11 @@ impl Puzzle {
                     }
                 };
             }
-            puzzle.add_category(&category_name, &labels)?;
+            puzzle.add_category(category_name, &labels)?;
         }
 
         for (line_number, line) in lines.enumerate() {
-            let line = line?;
+            let line = line.to_owned();
             let parts_vec = line
                 .trim()
                 .split(',')

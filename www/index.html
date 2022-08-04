@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Gridsolve</title>
+  </head>
+
+  <body>
+    <script type="module">
+      import init, {puzzle} from './pkg/gridsolve_wasm.js';
+      init().then(() => console.log(puzzle(`
+[Categories]
+First Name
+Angela
+Donald
+Leo
+
+Country
+Germany
+Ireland
+United States
+
+Year of Birth
+1946
+1954
+1979
+
+[Clues]
+1,yes,United States,1946
+2,after,Leo,Year of Birth,Germany
+3,or,Donald,1946,Ireland
+      `)));
+    </script>
+  </body>
+
+</html>
