@@ -1,4 +1,4 @@
-use gridsolve::{Puzzle, PuzzleError};
+use gridsolve::Puzzle;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]

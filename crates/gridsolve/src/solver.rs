@@ -3,21 +3,33 @@ use crate::rule::*;
 use itertools::iproduct;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::fmt;
 
 #[derive(Debug)]
 struct SolutionRow(Vec<Option<Label>>);
 
+#[derive(Debug, Serialize)]
+#[serde(transparent)]
+pub struct Step {
+    description: String,
+}
+
+impl Step {
+    pub fn new(description: String) -> Self {
+        Step { description }
+    }
+}
+
 /// The actual solution to a puzzle.
 /// Stores a reference to the puzzle itself.
 #[derive(Debug, Serialize)]
-#[serde(transparent)]
 pub struct Solution<'p> {
     /// List of entities that have been solved for.
     /// Each element is a mapping from the category name to the name of the
     /// label for that entity, if it was solved. If that category for the entity
     /// was not solved, the value is None.
     pub labels: Vec<HashMap<&'p str, Option<&'p str>>>,
+
+    pub steps: Vec<Step>,
 
     /// The puzzle that this is the solution for.
     #[serde(skip)]
@@ -48,6 +60,8 @@ pub struct Grid<'p> {
 
     /// The associated puzzle for the grid.
     pub puzzle: &'p Puzzle,
+
+    pub steps: Vec<Step>,
 
     /// The number of labels per category in the puzzle.
     pub labels_per_category: usize,
@@ -80,6 +94,7 @@ impl<'p> Grid<'p> {
         Grid {
             cells,
             puzzle,
+            steps: Default::default(),
             labels_per_category,
         }
     }
@@ -110,22 +125,18 @@ impl<'p> Grid<'p> {
         &mut self.cells[row][col]
     }
 
-    /// Set the cell `(label1, label2)` in the grid to `val`.
-    /// Returns `None` if the attempt to set was contradictory,
-    /// otherwise returns `Some(changed)` where `changed` is true iff
-    /// the cell was changed from its initial value and calls the callback.
     #[must_use]
-    pub fn set(&mut self, label1: Label, label2: Label, val: Cell) -> Option<bool> {
+    fn set_impl(&mut self, label1: Label, label2: Label, val: Cell) -> Option<bool> {
         debug_assert_ne!(val, Cell::Empty);
         let c = self.at(label1, label2);
         match *c {
             Cell::Empty => {
-                info!(
-                    "  {} : {} & {}\n",
-                    if val == Cell::Yes { "✔" } else { "❌" },
-                    self.puzzle.lookup_label(label1),
-                    self.puzzle.lookup_label(label2),
-                );
+                // info!(
+                //     "  {} : {} & {}\n",
+                //     if val == Cell::Yes { "✔" } else { "❌" },
+                //     self.puzzle.lookup_label(label1),
+                //     self.puzzle.lookup_label(label2),
+                // );
                 *self.at_mut(label1, label2) = val;
                 Some(true)
             }
@@ -133,31 +144,46 @@ impl<'p> Grid<'p> {
                 if val == *c {
                     Some(false)
                 } else {
-                    error!(
-                        "CONTRADICTION: {} | {} => {:?}",
-                        self.puzzle.lookup_label(label1),
-                        self.puzzle.lookup_label(label2),
-                        val
-                    );
+                    // error!(
+                    //     "CONTRADICTION: {} | {} => {:?}",
+                    //     self.puzzle.lookup_label(label1),
+                    //     self.puzzle.lookup_label(label2),
+                    //     val
+                    // );
                     None
                 }
             }
         }
     }
 
+    /// Set the cell `(label1, label2)` in the grid to `val`.
+    /// Returns `None` if the attempt to set was contradictory,
+    /// otherwise returns `Some(changed)` where `changed` is true iff
+    /// the cell was changed from its initial value and calls the callback.
+    #[must_use]
+    pub fn set(&mut self, label1: Label, label2: Label, val: Cell) -> Option<bool> {
+        match self.set_impl(label1, label2, val) {
+            Some(true) => {
+                self.steps.push(Step::new(String::new()));
+                Some(true)
+            }
+            res => res,
+        }
+    }
+
     /// Call `set` but if it succeeds also call the `callback`.
     /// This can be used for logging information if the set goes through.
     #[must_use]
-    pub fn set_with_callback<CB: FnOnce()>(
+    pub fn set_with_callback<CB: FnOnce() -> String>(
         &mut self,
         label1: Label,
         label2: Label,
         val: Cell,
         callback: CB,
     ) -> Option<bool> {
-        match self.set(label1, label2, val) {
+        match self.set_impl(label1, label2, val) {
             Some(true) => {
-                callback();
+                self.steps.push(Step::new(callback()));
                 Some(true)
             }
             res => res,
@@ -227,7 +253,6 @@ impl<'p> Solver<'p> {
         // Hopefully that's a solution.
         while changed {
             changed = false;
-            info!("Running constraints...\n");
             for constraint in self.puzzle.constraints() {
                 changed |= constraint.apply(&mut self.grid, self.puzzle)?;
             }
@@ -240,7 +265,7 @@ impl<'p> Solver<'p> {
     }
 
     /// Create a `Solution` from the current puzzle grid.
-    fn solution(&self) -> Solution<'p> {
+    fn solution(self) -> Solution<'p> {
         let mut map = vec![];
         for l in 0..self.puzzle.labels_per_category() {
             let primary = Label::new(Category(0), l);
@@ -272,6 +297,7 @@ impl<'p> Solver<'p> {
         Solution {
             labels: map,
             puzzle: self.puzzle,
+            steps: self.grid.steps,
         }
     }
 }

@@ -60,41 +60,41 @@ impl Constraint {
         let mut changed = false;
         // No overlap if x is after y.
         changed |= grid.set_with_callback(x, y, Cell::No, || {
-            info!(
+            format!(
                 "    Constraint {} => {} ({}) must appear after {} ({})\n",
                 self.name,
                 puzzle.lookup_label(x),
                 puzzle.lookup_category(x.category),
                 puzzle.lookup_label(y),
                 puzzle.lookup_category(y.category),
-            );
+            )
         })?;
 
         // x must appear `n` after the appearance of y.
         for i in 0..grid.labels_per_category {
             if i < n {
                 changed |= grid.set_with_callback(x, Label::new(c, i), Cell::No, || {
-                    info!(
+                    format!(
                         "    Constraint {} => There must be {} in ({}) before {} ({})\n",
                         self.name,
                         n,
                         puzzle.lookup_category(c),
                         puzzle.lookup_label(x),
                         puzzle.lookup_category(x.category),
-                    );
+                    )
                 })?;
             } else {
                 let l = Label::new(c, i - n);
                 if *grid.at(y, l) == Cell::No {
                     grid.set_with_callback(x, Label::new(c, i), Cell::No, || {
-                        info!(
+                        format!(
                             "    Constraint {} => {} ({}) conflicts with {} ({}) due to distance\n",
                             self.name,
                             puzzle.lookup_label(x),
                             puzzle.lookup_category(x.category),
                             puzzle.lookup_label(y),
                             puzzle.lookup_category(y.category),
-                        );
+                        )
                     })?;
                 } else {
                     break;
@@ -106,27 +106,27 @@ impl Constraint {
         for i in (0..grid.labels_per_category).rev() {
             if i + n >= grid.labels_per_category {
                 changed |= grid.set_with_callback(y, Label::new(c, i), Cell::No, || {
-                    info!(
+                    format!(
                         "    Constraint {} => There must be {} in ({}) after {} ({})\n",
                         self.name,
                         n,
                         puzzle.lookup_category(c),
                         puzzle.lookup_label(y),
                         puzzle.lookup_category(y.category),
-                    );
+                    )
                 })?;
             } else {
                 let l = Label::new(c, i + n);
                 if *grid.at(x, l) == Cell::No {
                     grid.set_with_callback(y, Label::new(c, i), Cell::No, || {
-                        info!(
+                        format!(
                             "    Constraint {} => {} ({}) conflicts with {} ({}) due to distance\n",
                             self.name,
                             puzzle.lookup_label(y),
                             puzzle.lookup_category(y.category),
                             puzzle.lookup_label(x),
                             puzzle.lookup_category(x.category),
-                        );
+                        )
                     })?;
                 } else {
                     break;
@@ -148,7 +148,7 @@ impl Constraint {
     ) -> Option<bool> {
         let mut changed = false;
         changed |= grid.set_with_callback(y, z, Cell::No, || {
-            info!(
+            format!(
                 "    Constraint {} => {} ({}) requires {} ({}) xor {} ({}), can't be the same\n",
                 self.name,
                 puzzle.lookup_label(x),
@@ -157,13 +157,13 @@ impl Constraint {
                 puzzle.lookup_category(y.category),
                 puzzle.lookup_label(z),
                 puzzle.lookup_category(z.category),
-            );
+            )
         })?;
 
         // If one of them is No, the other must be Yes.
         if *grid.at(x, y) == Cell::No {
             changed |= grid.set_with_callback(x, z, Cell::Yes, || {
-                info!(
+                format!(
                     "    Constraint {} => {} ({}) not with {} ({}), so must be with {} ({})\n",
                     self.name,
                     puzzle.lookup_label(x),
@@ -172,11 +172,11 @@ impl Constraint {
                     puzzle.lookup_category(y.category),
                     puzzle.lookup_label(z),
                     puzzle.lookup_category(z.category),
-                );
+                )
             })?;
         } else if *grid.at(x, z) == Cell::No {
             changed |= grid.set_with_callback(x, y, Cell::Yes, || {
-                info!(
+                format!(
                     "    Constraint {} => {} ({}) not with {} ({}), so must be with {} ({})\n",
                     self.name,
                     puzzle.lookup_label(x),
@@ -185,14 +185,14 @@ impl Constraint {
                     puzzle.lookup_category(z.category),
                     puzzle.lookup_label(y),
                     puzzle.lookup_category(y.category),
-                );
+                )
             })?;
         }
 
         // If one of them is Yes, the other must be No.
         if *grid.at(x, y) == Cell::Yes {
             changed |= grid.set_with_callback(x, z, Cell::No, || {
-                info!(
+                format!(
                     "    Constraint {} => {} ({}) with {} ({}), so can't be with {} ({})\n",
                     self.name,
                     puzzle.lookup_label(x),
@@ -201,11 +201,11 @@ impl Constraint {
                     puzzle.lookup_category(y.category),
                     puzzle.lookup_label(z),
                     puzzle.lookup_category(z.category),
-                );
+                )
             })?;
         } else if *grid.at(x, z) == Cell::Yes {
             changed |= grid.set_with_callback(x, y, Cell::No, || {
-                info!(
+                format!(
                     "    Constraint {} => {} ({}) with {} ({}), so can't be with {} ({})\n",
                     self.name,
                     puzzle.lookup_label(x),
@@ -214,7 +214,7 @@ impl Constraint {
                     puzzle.lookup_category(z.category),
                     puzzle.lookup_label(y),
                     puzzle.lookup_category(y.category),
-                );
+                )
             })?;
         }
 
@@ -226,7 +226,7 @@ impl Constraint {
             }
             if *grid.at(y, w) == Cell::No && *grid.at(z, w) == Cell::No {
                 changed |= grid.set_with_callback(x, w, Cell::No, || {
-                    info!(
+                    format!(
                         "    Constraint {} => {} ({}) must be either {} ({}) or {} ({}), \
 conflicts with {} ({}) which is with neither\n",
                         self.name,
@@ -238,12 +238,12 @@ conflicts with {} ({}) which is with neither\n",
                         puzzle.lookup_category(y.category),
                         puzzle.lookup_label(w),
                         puzzle.lookup_category(y.category),
-                    );
+                    )
                 })?;
             }
             if *grid.at(y, w) == Cell::Yes && *grid.at(z, w) == Cell::Yes {
                 changed |= grid.set_with_callback(x, w, Cell::No, || {
-                    info!(
+                    format!(
                         "    Constraint {} => {} ({}) must be one of {} ({}) or {} ({}), \
 conflicts with {} ({}) which is with both\n",
                         self.name,
@@ -255,7 +255,7 @@ conflicts with {} ({}) which is with both\n",
                         puzzle.lookup_category(y.category),
                         puzzle.lookup_label(w),
                         puzzle.lookup_category(y.category),
-                    );
+                    )
                 })?;
             }
         }
@@ -269,27 +269,27 @@ impl Rule for Constraint {
         match &self.kind {
             &ConstraintKind::Yes(x, y) => {
                 changed |= grid.set_with_callback(x, y, Cell::Yes, || {
-                    info!(
+                    format!(
                         "Constraint {} => Direct confirmation on {} ({}) and {} ({})",
                         self.name,
                         puzzle.lookup_label(x),
                         puzzle.lookup_category(x.category),
                         puzzle.lookup_label(y),
                         puzzle.lookup_category(y.category),
-                    );
+                    )
                 })?;
             }
 
             &ConstraintKind::No(x, y) => {
                 changed |= grid.set_with_callback(x, y, Cell::No, || {
-                    info!(
+                    format!(
                         "Constraint {} => Direct elimination on {} ({}) and {} ({})",
                         self.name,
                         puzzle.lookup_label(x),
                         puzzle.lookup_category(x.category),
                         puzzle.lookup_label(y),
                         puzzle.lookup_category(y.category),
-                    );
+                    )
                 })?;
             }
 
@@ -303,40 +303,40 @@ impl Rule for Constraint {
 
             &ConstraintKind::AfterExactly(x, c, y, n) => {
                 changed |= grid.set_with_callback(x, y, Cell::No, || {
-                    info!(
+                    format!(
                         "    Constraint {} => {} ({}) after {} ({}), so must different\n",
                         self.name,
                         puzzle.lookup_label(x),
                         puzzle.lookup_category(x.category),
                         puzzle.lookup_label(y),
                         puzzle.lookup_category(y.category),
-                    );
+                    )
                 })?;
                 for i in 0..grid.labels_per_category {
                     if i < n {
                         changed |= grid.set_with_callback(x, Label::new(c, i), Cell::No, || {
-                            info!(
+                            format!(
                                 "    Constraint {} => {} ({}) must have {} before in ({})\n",
                                 self.name,
                                 puzzle.lookup_label(x),
                                 puzzle.lookup_category(x.category),
                                 n,
                                 puzzle.lookup_category(c),
-                            );
+                            )
                         })?;
                         continue;
                     }
                     let l = Label::new(c, i - n);
                     if *grid.at(y, l) == Cell::No {
                         changed |= grid.set_with_callback(x, Label::new(c, i), Cell::No, || {
-                            info!(
+                            format!(
                                 "    Constraint {} => {} ({}) must have {} after in ({})\n",
                                 self.name,
                                 puzzle.lookup_label(x),
                                 puzzle.lookup_category(x.category),
                                 n,
                                 puzzle.lookup_category(c),
-                            );
+                            )
                         })?;
                     }
                 }

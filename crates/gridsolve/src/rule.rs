@@ -1,6 +1,5 @@
 use crate::puzzle::*;
 use crate::solver::*;
-use crate::{error, info};
 
 pub trait Rule {
     /// Return whether the application altered the grid at all.
@@ -14,7 +13,6 @@ pub struct ElimOthers {}
 
 impl Rule for ElimOthers {
     fn apply<'p>(&self, grid: &mut Grid<'p>, puzzle: &'p Puzzle) -> Option<bool> {
-        info!("Running ElimOthers...\n");
         let mut changed = false;
         for (l1, l2) in grid.cells() {
             if *grid.at(l1, l2) == Cell::Yes {
@@ -27,7 +25,7 @@ impl Rule for ElimOthers {
                         label: l,
                     };
                     changed |= grid.set_with_callback(l1, l3, Cell::No, || {
-                        info!(
+                        format!(
                             "    {} ({}) is already set to {} ({}), eliminating {} ({})\n",
                             puzzle.lookup_label(l1),
                             puzzle.lookup_category(l1.category),
@@ -35,7 +33,7 @@ impl Rule for ElimOthers {
                             puzzle.lookup_category(l2.category),
                             puzzle.lookup_label(l3),
                             puzzle.lookup_category(l3.category),
-                        );
+                        )
                     })?;
                 }
                 for l in 0..grid.labels_per_category {
@@ -47,7 +45,7 @@ impl Rule for ElimOthers {
                         label: l,
                     };
                     changed |= grid.set_with_callback(l3, l2, Cell::No, || {
-                        info!(
+                        format!(
                             "    {} ({}) is already set to {} ({}), eliminating {} ({})\n",
                             puzzle.lookup_label(l2),
                             puzzle.lookup_category(l2.category),
@@ -55,7 +53,7 @@ impl Rule for ElimOthers {
                             puzzle.lookup_category(l1.category),
                             puzzle.lookup_label(l3),
                             puzzle.lookup_category(l3.category),
-                        );
+                        )
                     })?;
                 }
             }
@@ -70,7 +68,6 @@ pub struct OnlyEmpty {}
 
 impl Rule for OnlyEmpty {
     fn apply<'p>(&self, grid: &mut Grid<'p>, puzzle: &'p Puzzle) -> Option<bool> {
-        info!("Running OnlyEmpty...\n");
         let mut changed = false;
         for (l1, l2) in grid.cells() {
             if *grid.at(l1, l2) == Cell::Empty {
@@ -91,13 +88,13 @@ impl Rule for OnlyEmpty {
 
                 if only {
                     changed |= grid.set_with_callback(l1, l2, Cell::Yes, || {
-                        info!(
+                        format!(
                             "    {} ({}) is the only possibility for {} ({})\n",
                             puzzle.lookup_label(l2),
                             puzzle.lookup_category(l2.category),
                             puzzle.lookup_label(l1),
                             puzzle.lookup_category(l1.category),
-                        );
+                        )
                     })?;
                     continue;
                 }
@@ -120,13 +117,13 @@ impl Rule for OnlyEmpty {
                 if only {
                     changed |= grid.set(l1, l2, Cell::Yes)?;
                     grid.set_with_callback(l1, l2, Cell::Yes, || {
-                        info!(
+                        format!(
                             "    {} ({}) is the only possibility for {} ({})\n",
                             puzzle.lookup_label(l1),
                             puzzle.lookup_category(l1.category),
                             puzzle.lookup_label(l2),
                             puzzle.lookup_category(l2.category),
-                        );
+                        )
                     })?;
                     continue;
                 }
@@ -142,7 +139,6 @@ pub struct Transitivity {}
 
 impl Rule for Transitivity {
     fn apply<'p>(&self, grid: &mut Grid<'p>, puzzle: &'p Puzzle) -> Option<bool> {
-        info!("Running Transitivity...\n");
         let mut changed = false;
         for (x, y) in grid.cells() {
             let (cx, cy) = (x.category, y.category);
@@ -150,7 +146,7 @@ impl Rule for Transitivity {
                 for z in grid.labels() {
                     if *grid.at(x, z) == Cell::Yes {
                         changed |= grid.set_with_callback(y, z, Cell::Yes, || {
-                            info!(
+                            format!(
                                 "    {} ({}) and {} ({}) share {} ({})\n",
                                 puzzle.lookup_label(y),
                                 puzzle.lookup_category(cy),
@@ -158,12 +154,12 @@ impl Rule for Transitivity {
                                 puzzle.lookup_category(z.category),
                                 puzzle.lookup_label(x),
                                 puzzle.lookup_category(cx),
-                            );
+                            )
                         })?;
                     }
                     if *grid.at(y, z) == Cell::Yes {
                         changed |= grid.set_with_callback(x, z, Cell::Yes, || {
-                            info!(
+                            format!(
                                 "    {} ({}) and {} ({}) share {} ({})\n",
                                 puzzle.lookup_label(x),
                                 puzzle.lookup_category(cx),
@@ -171,7 +167,7 @@ impl Rule for Transitivity {
                                 puzzle.lookup_category(z.category),
                                 puzzle.lookup_label(y),
                                 puzzle.lookup_category(cy),
-                            );
+                            )
                         })?;
                     }
                 }
@@ -191,7 +187,6 @@ pub struct NoByProxy {}
 
 impl Rule for NoByProxy {
     fn apply<'p>(&self, grid: &mut Grid<'p>, puzzle: &'p Puzzle) -> Option<bool> {
-        info!("Running NoByProxy...\n");
         let mut changed = false;
         for (x, y) in grid.cells() {
             let (cx, cy) = (x.category, y.category);
@@ -218,14 +213,14 @@ impl Rule for NoByProxy {
                 if !has_path {
                     // No path in one category, no point trying the rest.
                     changed |= grid.set_with_callback(x, y, Cell::No, || {
-                        info!(
+                        format!(
                             "    {} ({}) is irreconcilable with {} ({}): cannot share ({})\n",
                             puzzle.lookup_label(x),
                             puzzle.lookup_category(cx),
                             puzzle.lookup_label(y),
                             puzzle.lookup_category(cy),
                             puzzle.lookup_category(cz),
-                        );
+                        )
                     })?;
                     break;
                 }

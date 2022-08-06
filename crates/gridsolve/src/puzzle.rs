@@ -1,8 +1,6 @@
 use crate::constraint::{Constraint, ConstraintKind};
 use anyhow::{Context, Result};
 use bimap::BiMap;
-use std::fs::File;
-use std::io::{BufRead, Lines, Read};
 use std::path::Path;
 
 /// A category index in the puzzle.
