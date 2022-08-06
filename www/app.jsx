@@ -1,6 +1,7 @@
-import * as React from 'react';
-import * as ReactDOM from 'react-dom/client';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
 import initWASM, { solve_puzzle as solveWASM } from './pkg/gridsolve_wasm.js';
+import PuzzleInput from './PuzzleInput';
 
 function App() {
   const solve = () => {
@@ -32,6 +33,7 @@ Year of Birth
 
   return (
     <div>
+      <PuzzleInput></PuzzleInput>
       <button onClick={solve}>Make Puzzle</button>
     </div>
   );
