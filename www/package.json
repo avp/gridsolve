@@ -1,0 +1,20 @@
+{
+  "name": "gridsolve",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.14.53",
+    "esbuild-plugin-wasm-pack": "^1.1.0"
+  },
+  "scripts": {
+    "build": "esbuild app.jsx --bundle --outfile=dist/dist.js --target=firefox100,chrome100",
+    "serve": "esbuild app.jsx --bundle --outfile=dist/dist.js --target=firefox100,chrome100 --watch"
+  },
+  "author": "AVP",
+  "license": "MIT"
+}
