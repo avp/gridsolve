@@ -27,6 +27,7 @@ pub struct Solution<'p> {
     /// Each element is a mapping from the category name to the name of the
     /// label for that entity, if it was solved. If that category for the entity
     /// was not solved, the value is None.
+    #[serde(rename = "solution")]
     pub labels: Vec<HashMap<&'p str, Option<&'p str>>>,
 
     pub steps: Vec<Step>,

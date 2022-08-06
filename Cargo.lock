@@ -284,6 +284,8 @@ name = "gridsolve_wasm"
 version = "0.1.0"
 dependencies = [
  "gridsolve",
+ "serde",
+ "serde_json",
  "wasm-bindgen",
 ]
 
