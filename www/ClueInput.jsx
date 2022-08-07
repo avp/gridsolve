@@ -117,7 +117,7 @@ export default function ClueInput({ categories, labels, onChange }) {
   }
 
   function infoText(s) {
-    return <span>{s}</span>;
+    return <span className="infoText">{s}</span>;
   }
 
   switch (kind.name) {

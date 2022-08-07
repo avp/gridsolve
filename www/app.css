@@ -1,15 +1,28 @@
+html,body {
+  font-family: Arial, Helvetica, 'sans-serif';
+}
+
 .categoryInputs p {
-  margin: 1px;
+  margin: .1rem;
 }
 
 .categoryInput {
-  margin-bottom: 20px;
+  margin-bottom: 1rem;
 }
 
 .labelInput {
-  margin-left: 10px;
+  margin-left: .5rem;
 }
 
 .kindSelect {
-  margin-right: 10px;
+  margin-right: .5rem;
+}
+
+.clueInputs {
+  margin: 1rem 0;
+}
+
+.infoText {
+  padding-left: .5rem;
+  padding-right: .5rem;
 }

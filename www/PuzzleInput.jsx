@@ -71,7 +71,7 @@ export default function PuzzleInput() {
               </option>
             ))}
           </select>
-          <label htmlFor="numCategories">Categories</label>
+          <label htmlFor="numCategories">&nbsp;Categories</label>
         </p>
         <p>
           <select
@@ -84,7 +84,7 @@ export default function PuzzleInput() {
               </option>
             ))}
           </select>
-          <label htmlFor="numLabels">Items/Category</label>
+          <label htmlFor="numLabels">&nbsp;Items/Category</label>
         </p>
 
         <div className="categoryInputs">{...categoryInputs}</div>

@@ -34,7 +34,6 @@ Year of Birth
   return (
     <div>
       <PuzzleInput></PuzzleInput>
-      <button onClick={solve}>Make Puzzle</button>
     </div>
   );
 }
