@@ -5,51 +5,62 @@ const KINDS = {
     name: 'yes',
     params: ['label', 'label'],
   },
+  after: {
+    name: 'after',
+    params: ['label', 'category', 'label'],
+  },
+  or: {
+    name: 'or',
+    params: ['label', 'label', 'label'],
+  },
 };
 
 export default function ClueInput({ categories, labels, onChange }) {
   const [name, setName] = useState('');
   const [kind, setKind] = useState(KINDS.yes);
-  const [params, setParams] = useState(() => initParams(kind));
+  const [params, setParams] = useState(initParams(KINDS.yes));
+  const paramInputs = [];
 
-  function initParams(kind) {
-    const params = [];
-    for (const param of kind.params) {
-      switch (param) {
-        case 'label':
-          params.push(labels[0]);
-          break;
-        case 'category':
-          params.push(categories[0]);
-          break;
-        default:
-          break;
-      }
+  function initParams(k) {
+    const copy = [];
+    for (const param of k.params) {
+      copy.push(0);
     }
-    return params;
+    return copy;
   }
 
-  function makeString() {
-    console.log(params);
-    return [name, kind.name, ...params].join(',');
+  function makeClue() {
+    return {
+      name,
+      kind,
+      params,
+    };
   }
 
   useEffect(() => {
-    onChange(makeString());
-  }, [name, kind, params]);
+    onChange(makeClue());
+  }, [name, kind, params, labels, categories]);
+
+  useEffect(() => {
+    // if (!paramInputs.length) return;
+    // const copy = [];
+    // for (const paramInput of paramInputs) {
+    //   copy.push(paramInput.value);
+    // }
+    // setParams(copy);
+  }, [labels, categories]);
 
   function setParamAt(i, newVal) {
     let copy = params.slice();
     copy[i] = newVal;
     setParams(copy);
-    console.log(i, copy, params);
   }
 
-  function makeSelect(optStrings, callback) {
+  function paramSelect(optStrings, paramIdx) {
     let options = [];
     for (let i = 0, n = optStrings.length; i < n; ++i) {
       options.push(
-        <option key={i} value={optStrings[i]}>
+        <option key={i} value={i}>
           {optStrings[i]}
         </option>
       );
@@ -57,9 +68,9 @@ export default function ClueInput({ categories, labels, onChange }) {
     return (
       <select
         onChange={(e) => {
-          console.log(e.target.value);
-          callback(e.target.value);
+          setParamAt(paramIdx, e.target.value);
         }}
+        value={params[paramIdx]}
       >
         {...options}
       </select>
@@ -68,10 +79,10 @@ export default function ClueInput({ categories, labels, onChange }) {
 
   function kindSelect() {
     let options = [];
-    for (let i of Object.keys(KINDS)) {
+    for (let name of Object.keys(KINDS)) {
       options.push(
-        <option key={i} value={KINDS[i]}>
-          {KINDS[i].name}
+        <option key={name} value={name}>
+          {name}
         </option>
       );
     }
@@ -85,9 +96,11 @@ export default function ClueInput({ categories, labels, onChange }) {
         />
         <select
           onChange={(e) => {
-            setKind(e.target.value);
-            setParams(initParams(e.target.value));
+            let k = KINDS[e.target.value];
+            setKind(k);
+            setParams(initParams(k));
           }}
+          className="kindSelect"
         >
           {...options}
         </select>
@@ -96,22 +109,42 @@ export default function ClueInput({ categories, labels, onChange }) {
   }
 
   function labelSelect(paramIdx) {
-    return makeSelect(labels, (s) => {
-      console.log(s);
-      setParamAt(paramIdx, s);
-    });
+    return paramSelect(labels, paramIdx);
+  }
+
+  function categorySelect(paramIdx) {
+    return paramSelect(categories, paramIdx);
+  }
+
+  function infoText(s) {
+    return <span>{s}</span>;
   }
 
   switch (kind.name) {
     case 'yes':
-      return (
-        <div className="clueInput">
-          {kindSelect()}
-          {labelSelect(0)}
-          {labelSelect(1)}
-        </div>
-      );
-    default:
+      paramInputs.push(labelSelect(0));
+      paramInputs.push(infoText('is'));
+      paramInputs.push(labelSelect(1));
+      break;
+    case 'after':
+      paramInputs.push(labelSelect(0));
+      paramInputs.push(infoText('is after'));
+      paramInputs.push(labelSelect(2));
+      paramInputs.push(infoText('in'));
+      paramInputs.push(categorySelect(1));
+      break;
+    case 'or':
+      paramInputs.push(labelSelect(0));
+      paramInputs.push(infoText('is either'));
+      paramInputs.push(labelSelect(1));
+      paramInputs.push(infoText('or'));
+      paramInputs.push(labelSelect(2));
       break;
   }
+  return (
+    <div className="clueInput">
+      {kindSelect()}
+      {...paramInputs}
+    </div>
+  );
 }

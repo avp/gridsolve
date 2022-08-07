@@ -31,7 +31,6 @@ export default function PuzzleInput() {
   function validate(ev) {
     ev.preventDefault();
     console.log(categories, labels, clues);
-    console.log(numClues);
   }
 
   const categoryInputs = [];
@@ -85,7 +84,7 @@ export default function PuzzleInput() {
               </option>
             ))}
           </select>
-          <label htmlFor="numLabels">Items</label>
+          <label htmlFor="numLabels">Items/Category</label>
         </p>
 
         <div className="categoryInputs">{...categoryInputs}</div>
