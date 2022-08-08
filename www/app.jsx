@@ -1,44 +1,61 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import initWASM, { solve_puzzle as solveWASM } from './pkg/gridsolve_wasm.js';
 import PuzzleInput from './PuzzleInput';
+import Solution from './Solution';
 
-function App() {
-  const solve = () => {
-    let json = solveWASM(`
-[Categories]
-First Name
-Angela
-Donald
-Leo
-
-Country
-Germany
-Ireland
-United States
-
-Year of Birth
-1946
-1954
-1979
-
-[Clues]
-1,yes,United States,1946
-2,after,Leo,Year of Birth,Germany
-3,or,Donald,1946,Ireland
-      `);
-    let solution = JSON.parse(json);
-    console.log(solution);
-  };
-
-  return (
-    <div>
-      <PuzzleInput></PuzzleInput>
-    </div>
-  );
+function readHash() {
+  if (window.location.hash) {
+    try {
+      const puzzle = JSON.parse(
+        decodeURIComponent(window.location.hash.substring(1))
+      );
+      const solution = JSON.parse(solveWASM(puzzle.puzzleString));
+      if (!solution.error) {
+        return [puzzle, solution];
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  return [null, null];
 }
 
+function App() {
+  const [puzzle, setPuzzle] = useState(existingPuzzle);
+  const [solution, setSolution] = useState(existingSolution);
+
+  useEffect(() => {
+    if (!puzzle) {
+      window.location.hash = '';
+    } else {
+      window.location.hash = encodeURIComponent(JSON.stringify(puzzle));
+    }
+  }, [puzzle]);
+
+  function handleInput(puzzle, solution) {
+    setPuzzle(puzzle);
+    setSolution(solution);
+  }
+
+  if (solution) {
+    return (
+      <div>
+        <Solution puzzle={puzzle} solution={solution}></Solution>
+        <button onClick={() => handleInput(null, null)}>Clear Solution</button>
+      </div>
+    );
+  }
+  return <PuzzleInput onSolution={handleInput}></PuzzleInput>;
+}
+
+let existingPuzzle = null;
+let existingSolution = null;
 const root = ReactDOM.createRoot(document.getElementById('root'));
+
 fetch('dist/gridsolve_wasm_bg.wasm').then((wasm) =>
-  initWASM(wasm).then(() => root.render(<App />))
+  initWASM(wasm).then(() => {
+    [existingPuzzle, existingSolution] = readHash();
+    root.render(<App />);
+  })
 );
