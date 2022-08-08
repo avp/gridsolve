@@ -5,6 +5,7 @@ export default function Solution({ puzzle, solution }) {
     <div className="Solution">
       <SolutionTable puzzle={puzzle} solution={solution} />
       <SolutionGrid puzzle={puzzle} solution={solution} />
+      <StepList puzzle={puzzle} solution={solution} />
     </div>
   );
 }
@@ -83,7 +84,11 @@ function SolutionGrid({ puzzle, solution }) {
       }
       rows.push(<tr>{...row}</tr>);
     }
-    rows.push(<tr className="spacer"><td className="spacer" /></tr>);
+    rows.push(
+      <tr className="spacer">
+        <td className="spacer" />
+      </tr>
+    );
   }
 
   return (
@@ -91,4 +96,14 @@ function SolutionGrid({ puzzle, solution }) {
       <tbody>{...rows}</tbody>
     </table>
   );
+}
+
+function StepList({ puzzle, solution }) {
+  const steps = [];
+
+  for (let i = 0; i < solution.steps.length; ++i) {
+    steps.push(<li key={i}>{solution.steps[i] || "<no info>"}</li>);
+  }
+
+  return <ol>{...steps}</ol>;
 }
