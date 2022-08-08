@@ -8,14 +8,21 @@ use std::collections::HashMap;
 struct SolutionRow(Vec<Option<Label>>);
 
 #[derive(Debug, Serialize)]
-#[serde(transparent)]
-pub struct Step {
+pub struct Step<'p> {
+    label1: &'p str,
+    label2: &'p str,
+    yes: bool,
     description: String,
 }
 
-impl Step {
-    pub fn new(description: String) -> Self {
-        Step { description }
+impl<'p> Step<'p> {
+    pub fn new(label1: &'p str, label2: &'p str, yes: bool, description: String) -> Self {
+        Step {
+            description,
+            label1,
+            label2,
+            yes,
+        }
     }
 }
 
@@ -30,7 +37,7 @@ pub struct Solution<'p> {
     #[serde(rename = "solution")]
     pub labels: Vec<HashMap<&'p str, Option<&'p str>>>,
 
-    pub steps: Vec<Step>,
+    pub steps: Vec<Step<'p>>,
 
     /// The puzzle that this is the solution for.
     #[serde(skip)]
@@ -62,7 +69,7 @@ pub struct Grid<'p> {
     /// The associated puzzle for the grid.
     pub puzzle: &'p Puzzle,
 
-    pub steps: Vec<Step>,
+    pub steps: Vec<Step<'p>>,
 
     /// The number of labels per category in the puzzle.
     pub labels_per_category: usize,
@@ -165,7 +172,12 @@ impl<'p> Grid<'p> {
     pub fn set(&mut self, label1: Label, label2: Label, val: Cell) -> Option<bool> {
         match self.set_impl(label1, label2, val) {
             Some(true) => {
-                self.steps.push(Step::new(String::new()));
+                self.steps.push(Step::new(
+                    self.puzzle.lookup_label(label1),
+                    self.puzzle.lookup_label(label2),
+                    val == Cell::Yes,
+                    String::new(),
+                ));
                 Some(true)
             }
             res => res,
@@ -184,7 +196,12 @@ impl<'p> Grid<'p> {
     ) -> Option<bool> {
         match self.set_impl(label1, label2, val) {
             Some(true) => {
-                self.steps.push(Step::new(callback()));
+                self.steps.push(Step::new(
+                    self.puzzle.lookup_label(label1),
+                    self.puzzle.lookup_label(label2),
+                    val == Cell::Yes,
+                    callback(),
+                ));
                 Some(true)
             }
             res => res,

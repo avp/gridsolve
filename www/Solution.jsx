@@ -1,11 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-export default function Solution({ puzzle, solution }) {
+const YES = <span className="yesEntry">&#x2713;</span>;
+const NO = <span className="noEntry">&#x2a2f;</span>;
+
+export default function Solution({ puzzle, solution, onClear }) {
+  [numSteps, setNumSteps] = useState(solution.steps.length);
+
   return (
     <div className="Solution">
-      <SolutionTable puzzle={puzzle} solution={solution} />
-      <SolutionGrid puzzle={puzzle} solution={solution} />
-      <StepList puzzle={puzzle} solution={solution} />
+      <div className="LeftContainer">
+        <button onClick={onClear}>Clear Solution</button>
+        <SolutionTable puzzle={puzzle} solution={solution} />
+        <input
+          type="range"
+          className="stepsSlider"
+          min="1"
+          max={solution.steps.length}
+          value={numSteps}
+          onChange={(e) => setNumSteps(parseInt(e.target.value, 10))}
+        />
+        <SolutionGrid puzzle={puzzle} solution={solution} numSteps={numSteps} />
+      </div>
+      <div className="StepContainer">
+        <StepList puzzle={puzzle} solution={solution} numSteps={numSteps} />
+      </div>
     </div>
   );
 }
@@ -32,7 +50,7 @@ function SolutionTable({ puzzle, solution }) {
 
   return (
     <div>
-      <table border="1">
+      <table className="SolutionTable">
         <thead>
           <tr>{topRow}</tr>
         </thead>
@@ -42,8 +60,24 @@ function SolutionTable({ puzzle, solution }) {
   );
 }
 
-function SolutionGrid({ puzzle, solution }) {
+function SolutionGrid({ puzzle, solution, numSteps }) {
   const rows = [];
+
+  const lookup = {};
+  for (let i = 0; i < numSteps; ++i) {
+    const step = solution.steps[i];
+    lookup[step.label1] ??= {};
+    lookup[step.label1][step.label2] = step.yes;
+    console.log(lookup);
+  }
+
+  function doLookup(label1, label2) {
+    const entry = lookup[label1]?.[label2];
+    if (typeof entry === 'undefined') {
+      return <span>&nbsp;</span>;
+    }
+    return entry ? YES : NO;
+  }
 
   let row = [];
   row.push(<td key={-1} className="spacer"></td>);
@@ -73,10 +107,10 @@ function SolutionGrid({ puzzle, solution }) {
       );
       for (let c2 = puzzle.categories.length - 1; c2 > c; --c2) {
         for (let i2 = 0; i2 < puzzle.numLabels; ++i2) {
-          const label = puzzle.labels[puzzle.numLabels * c + i];
+          const label2 = puzzle.labels[puzzle.numLabels * c2 + i2];
           row.push(
             <td key={puzzle.numLabels * c2 + i2} className="gridEntry">
-              <span></span>
+              <span className="entryContainer">{doLookup(label, label2)}</span>
             </td>
           );
         }
@@ -98,12 +132,32 @@ function SolutionGrid({ puzzle, solution }) {
   );
 }
 
-function StepList({ puzzle, solution }) {
+function StepList({ puzzle, solution, numSteps }) {
+  const endRef = useRef(null);
   const steps = [];
 
-  for (let i = 0; i < solution.steps.length; ++i) {
-    steps.push(<li key={i}>{solution.steps[i] || "<no info>"}</li>);
+  useEffect(() => {
+    endRef.current?.scrollIntoView();
+  }, [numSteps]);
+
+  for (let i = 0; i < numSteps; ++i) {
+    const step = solution.steps[i];
+    steps.push(
+      <li key={i} className="step">
+        <span className="stepResult">
+          {step.label1} {step.yes ? YES : NO} {step.label2}
+        </span>
+        {step.description && (
+          <span className="stepDescription">{step.description}</span>
+        )}
+      </li>
+    );
   }
 
-  return <ol>{...steps}</ol>;
+  return (
+    <ol>
+      {...steps}
+      <div ref={endRef}></div>
+    </ol>
+  );
 }

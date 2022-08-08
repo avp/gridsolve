@@ -41,8 +41,11 @@ function App() {
   if (solution) {
     return (
       <div>
-        <button onClick={() => handleInput(null, null)}>Clear Solution</button>
-        <Solution puzzle={puzzle} solution={solution}></Solution>
+        <Solution
+          puzzle={puzzle}
+          solution={solution}
+          onClear={() => handleInput(null, null)}
+        ></Solution>
       </div>
     );
   }

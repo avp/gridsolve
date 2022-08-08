@@ -2,6 +2,11 @@ html,body {
   font-family: Arial, Helvetica, 'sans-serif';
 }
 
+body {
+  padding: 0;
+  margin: 0;
+}
+
 .categoryInputs p {
   margin: .1rem;
 }
@@ -27,6 +32,36 @@ html,body {
   padding-right: .5rem;
 }
 
+.Solution {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.Solution .LeftContainer {
+  padding: .5rem;
+}
+
+.stepsSlider {
+  width: 100%;
+}
+
+.Solution .StepContainer {
+  height: 100vh;
+  overflow-y: scroll;
+  overflow-x: wrap;
+}
+
+.SolutionTable {
+  border-style: outset;
+  border-collapse: collapse;
+  margin: 1rem;
+}
+
+.SolutionTable td {
+  border: 1px solid gray;
+  padding: .2rem .3rem;
+}
+
 .SolutionGrid {
   margin: 1rem;
   border-collapse: collapse;
@@ -50,9 +85,17 @@ html,body {
 }
 
 .SolutionGrid .gridEntry {
-  height: 1.3em;
-  width: 1.3em;
-  border: 1px solid #888;
+  height: 1.5em;
+  width: 1.5em;
+  border: 1px solid darkgray;
+  text-align: center;
+  vertical-align: center;
+}
+
+.SolutionGrid .entryContainer {
+  height: 100%;
+  width: 100%;
+  display: inline-block;
   text-align: center;
   vertical-align: center;
 }
@@ -75,4 +118,28 @@ html,body {
   border-style: none;
   height: 4px;
   width: 4px;
+}
+
+.yesEntry {
+  color: green;
+}
+
+.noEntry {
+  color: darkgray;
+  font-size: .75rem;
+}
+
+.Solution .step {
+  margin-bottom: .2rem;
+}
+
+.Solution .stepResult {
+  display: block;
+}
+
+.Solution .stepDescription {
+  display: block;
+  color: gray;
+  font-size: .8rem;
+  padding-left: .5em;
 }
