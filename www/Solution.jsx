@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 const YES = <span className="yesEntry">&#x2713;</span>;
 const NO = <span className="noEntry">&#x2a2f;</span>;
 
+/// Display the whole interactive solution.
 export default function Solution({ puzzle, solution, onClear }) {
   [numSteps, setNumSteps] = useState(solution.steps.length);
 
@@ -63,12 +64,12 @@ function SolutionTable({ puzzle, solution }) {
 function SolutionGrid({ puzzle, solution, numSteps }) {
   const rows = [];
 
+  // Table of populated cells in the grid for the first `numSteps`.
   const lookup = {};
   for (let i = 0; i < numSteps; ++i) {
     const step = solution.steps[i];
     lookup[step.label1] ??= {};
     lookup[step.label1][step.label2] = step.yes;
-    console.log(lookup);
   }
 
   function doLookup(label1, label2) {

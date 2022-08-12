@@ -1,4 +1,4 @@
-use crate::constraint::{Constraint, ConstraintKind};
+use crate::constraint::Constraint;
 use anyhow::{Context, Result};
 use bimap::BiMap;
 use std::path::Path;
@@ -31,8 +31,10 @@ pub enum PuzzleError {
     MissingCategories,
     #[error("Missing [Clues] marker")]
     MissingClues,
-    #[error("Invalid Clue: {}", clue)]
-    InvalidClue { clue: String },
+    #[error("Invalid Clue kind: {0}", name)]
+    InvalidClueName { name: String },
+    #[error("Invalid Clue: expected {} but found {}", expected, found)]
+    InvalidClueCount { expected: usize, found: usize },
     #[error(
         "Invalid number of labels in category \"{}\", expected {} but found {}",
         category,
@@ -129,125 +131,10 @@ impl Puzzle {
         }
 
         for (line_number, line) in lines.enumerate() {
-            let line = line.to_owned();
-            let parts_vec = line
-                .trim()
-                .split(',')
-                .map(|s| s.trim())
-                .collect::<Vec<&str>>();
-            if parts_vec.len() < 3 {
-                return Err(PuzzleError::InvalidClue { clue: line });
-            }
-            let (name, parts) = parts_vec.as_slice().split_first().unwrap();
-            let constraint = match parts[0] {
-                "yes" => {
-                    if parts.len() < 3 {
-                        return Err(PuzzleError::InvalidClue { clue: line });
-                    }
-                    ConstraintKind::Yes(puzzle.label(parts[1])?, puzzle.label(parts[2])?)
-                }
-                "no" => {
-                    if parts.len() < 3 {
-                        return Err(PuzzleError::InvalidClue { clue: line });
-                    }
-                    ConstraintKind::No(puzzle.label(parts[1])?, puzzle.label(parts[2])?)
-                }
-                "after" => {
-                    if parts.len() < 4 {
-                        return Err(PuzzleError::InvalidClue { clue: line });
-                    }
-                    ConstraintKind::After(
-                        puzzle.label(parts[1])?,
-                        puzzle.category(parts[2])?,
-                        puzzle.label(parts[3])?,
-                    )
-                }
-                "afteratleast" => {
-                    if parts.len() < 4 {
-                        return Err(PuzzleError::InvalidClue { clue: line });
-                    }
-                    let n: usize = parts[4]
-                        .parse()
-                        .with_context(|| format!("in line {}", line_number))
-                        .map_err(|e| PuzzleError::InvalidInteger { source: e })?;
-                    if n > puzzle.labels_per_category() - 1 {
-                        return Err(PuzzleError::InvalidClue { clue: line });
-                    }
-                    ConstraintKind::AfterAtLeast(
-                        puzzle.label(parts[1])?,
-                        puzzle.category(parts[2])?,
-                        puzzle.label(parts[3])?,
-                        n,
-                    )
-                }
-                "afterexactly" => {
-                    if parts.len() < 4 {
-                        return Err(PuzzleError::InvalidClue { clue: line });
-                    }
-                    let n: usize = parts[4]
-                        .parse()
-                        .with_context(|| format!("in line {}", line_number))
-                        .map_err(|e| PuzzleError::InvalidInteger { source: e })?;
-                    if n > puzzle.labels_per_category() - 1 {
-                        return Err(PuzzleError::InvalidClue { clue: line });
-                    }
-                    ConstraintKind::AfterExactly(
-                        puzzle.label(parts[1])?,
-                        puzzle.category(parts[2])?,
-                        puzzle.label(parts[3])?,
-                        n,
-                    )
-                }
-                "or" => {
-                    if parts.len() < 4 {
-                        return Err(PuzzleError::InvalidClue { clue: line });
-                    }
-                    ConstraintKind::Or(
-                        puzzle.label(parts[1])?,
-                        puzzle.label(parts[2])?,
-                        puzzle.label(parts[3])?,
-                    )
-                }
-                "xor" => {
-                    if parts.len() < 4 {
-                        return Err(PuzzleError::InvalidClue { clue: line });
-                    }
-                    ConstraintKind::Xor(
-                        puzzle.label(parts[1])?,
-                        puzzle.label(parts[2])?,
-                        puzzle.label(parts[3])?,
-                    )
-                }
-                "twobytwo" => {
-                    if parts.len() < 5 {
-                        return Err(PuzzleError::InvalidClue { clue: line });
-                    }
-                    ConstraintKind::TwoByTwo(
-                        puzzle.label(parts[1])?,
-                        puzzle.label(parts[2])?,
-                        puzzle.label(parts[3])?,
-                        puzzle.label(parts[4])?,
-                    )
-                }
-                "exactlyone" => {
-                    if parts.len() < 5 || parts.len() % 2 != 1 {
-                        return Err(PuzzleError::InvalidClue { clue: line });
-                    }
-                    let mut constraints = vec![];
-                    for i in 0..parts.len() / 2 {
-                        constraints.push((
-                            puzzle.label(parts[i * 2 + 1])?,
-                            puzzle.label(parts[i * 2 + 2])?,
-                        ));
-                    }
-                    ConstraintKind::ExactlyOne(constraints)
-                }
-                _ => return Err(PuzzleError::InvalidClue { clue: line }),
-            };
-            puzzle.add_constraint(Constraint {
-                kind: constraint,
-                name: name.to_string(),
-            });
+            puzzle.add_constraint(
+                Constraint::from_str(&puzzle, line)
+                    .with_context(|| format!("in line {}", line_number))?,
+            );
         }
 
         Ok(puzzle)

@@ -3,6 +3,7 @@
 use crate::puzzle::*;
 use crate::rule::Rule;
 use crate::solver::{Cell, Grid};
+use anyhow::{Context, Result};
 
 #[derive(Debug)]
 pub enum ConstraintKind {
@@ -260,6 +261,128 @@ conflicts with {} ({}) which is with both\n",
             }
         }
         Some(changed)
+    }
+
+    pub fn from_str(puzzle: &Puzzle, line: &str) -> Result<Self, PuzzleError> {
+        let parts_vec = line
+            .trim()
+            .split(',')
+            .map(|s| s.trim())
+            .collect::<Vec<&str>>();
+        let found = parts_vec.len();
+        if parts_vec.len() < 3 {
+            return Err(PuzzleError::InvalidClueCount { expected: 3, found });
+        }
+        let (name, parts) = parts_vec.as_slice().split_first().unwrap();
+        let kind = match parts[0] {
+            "yes" => {
+                if parts.len() < 3 {
+                    return Err(PuzzleError::InvalidClueCount { expected: 3, found });
+                }
+                ConstraintKind::Yes(puzzle.label(parts[1])?, puzzle.label(parts[2])?)
+            }
+            "no" => {
+                if parts.len() < 3 {
+                    return Err(PuzzleError::InvalidClueCount { expected: 3, found });
+                }
+                ConstraintKind::No(puzzle.label(parts[1])?, puzzle.label(parts[2])?)
+            }
+            "after" => {
+                if parts.len() < 4 {
+                    return Err(PuzzleError::InvalidClueCount { expected: 4, found });
+                }
+                ConstraintKind::After(
+                    puzzle.label(parts[1])?,
+                    puzzle.category(parts[2])?,
+                    puzzle.label(parts[3])?,
+                )
+            }
+            "afteratleast" => {
+                if parts.len() < 4 {
+                    return Err(PuzzleError::InvalidClueCount { expected: 4, found });
+                }
+                let n: usize = parts[4]
+                    .parse()
+                    .with_context(|| "invalid integer")
+                    .map_err(|e| PuzzleError::InvalidInteger { source: e })?;
+                if n > puzzle.labels_per_category() - 1 {
+                    return Err(PuzzleError::InvalidClueCount { expected: 4, found });
+                }
+                ConstraintKind::AfterAtLeast(
+                    puzzle.label(parts[1])?,
+                    puzzle.category(parts[2])?,
+                    puzzle.label(parts[3])?,
+                    n,
+                )
+            }
+            "afterexactly" => {
+                if parts.len() < 4 {
+                    return Err(PuzzleError::InvalidClueCount { expected: 4, found });
+                }
+                let n: usize = parts[4]
+                    .parse()
+                    .with_context(|| "invalid integer")
+                    .map_err(|e| PuzzleError::InvalidInteger { source: e })?;
+                if n > puzzle.labels_per_category() - 1 {
+                    return Err(PuzzleError::InvalidClueCount { expected: 4, found });
+                }
+                ConstraintKind::AfterExactly(
+                    puzzle.label(parts[1])?,
+                    puzzle.category(parts[2])?,
+                    puzzle.label(parts[3])?,
+                    n,
+                )
+            }
+            "or" => {
+                if parts.len() < 4 {
+                    return Err(PuzzleError::InvalidClueCount { expected: 4, found });
+                }
+                ConstraintKind::Or(
+                    puzzle.label(parts[1])?,
+                    puzzle.label(parts[2])?,
+                    puzzle.label(parts[3])?,
+                )
+            }
+            "xor" => {
+                if parts.len() < 4 {
+                    return Err(PuzzleError::InvalidClueCount { expected: 4, found });
+                }
+                ConstraintKind::Xor(
+                    puzzle.label(parts[1])?,
+                    puzzle.label(parts[2])?,
+                    puzzle.label(parts[3])?,
+                )
+            }
+            "twobytwo" => {
+                if parts.len() < 5 {
+                    return Err(PuzzleError::InvalidClueCount { expected: 5, found });
+                }
+                ConstraintKind::TwoByTwo(
+                    puzzle.label(parts[1])?,
+                    puzzle.label(parts[2])?,
+                    puzzle.label(parts[3])?,
+                    puzzle.label(parts[4])?,
+                )
+            }
+            "exactlyone" => {
+                if parts.len() < 5 || parts.len() % 2 != 1 {
+                    return Err(PuzzleError::InvalidClueCount { expected: 5, found });
+                }
+                let mut constraints = vec![];
+                for i in 0..parts.len() / 2 {
+                    constraints.push((
+                        puzzle.label(parts[i * 2 + 1])?,
+                        puzzle.label(parts[i * 2 + 2])?,
+                    ));
+                }
+                ConstraintKind::ExactlyOne(constraints)
+            }
+            s => return Err(PuzzleError::InvalidClueName { name: s.to_owned() }),
+        };
+        Ok(Constraint {
+            kind,
+            name: name.to_string(),
+        })
     }
 }
 

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useHash } from 'react';
 import ReactDOM from 'react-dom/client';
 import initWASM, { solve_puzzle as solveWASM } from './pkg/gridsolve_wasm.js';
 import PuzzleInput from './PuzzleInput';
 import Solution from './Solution';
 
 function readHash() {
+  console.log("Reading hash");
   if (window.location.hash) {
     try {
       const puzzle = JSON.parse(
@@ -31,7 +32,20 @@ function App() {
     } else {
       window.location.hash = encodeURIComponent(JSON.stringify(puzzle));
     }
+
   }, [puzzle]);
+
+  function hashListener() {
+    const [newPuzzle, newSolution] = readHash();
+    setPuzzle(newPuzzle);
+    setSolution(newSolution);
+  }
+
+  useEffect(() => {
+    console.log('hi');
+    window.addEventListener('hashchange', hashListener);
+    // return () => window.removeEventListener('hashchange', hashListener);
+  });
 
   function handleInput(puzzle, solution) {
     setPuzzle(puzzle);

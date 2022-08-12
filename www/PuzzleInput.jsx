@@ -70,7 +70,7 @@ export default function PuzzleInput({ onSolution }) {
     const solution = JSON.parse(solveWASM(puzzleString));
 
     if (solution.error) {
-      console.log(solution);
+      console.log(solution.error);
     } else {
       onSolution(puzzle, solution);
     }

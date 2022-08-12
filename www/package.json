@@ -12,8 +12,8 @@
     "esbuild-plugin-wasm-pack": "^1.1.0"
   },
   "scripts": {
-    "build": "esbuild app.jsx --sourcemap --bundle --outfile=dist/dist.js --target=firefox100,chrome100",
-    "serve": "esbuild app.jsx --sourcemap --bundle --outfile=dist/dist.js --target=firefox100,chrome100 --watch"
+    "build": "esbuild app.jsx --sourcemap --bundle --outfile=../dist.js --target=firefox100,chrome100",
+    "serve": "esbuild app.jsx --sourcemap --bundle --outfile=../dist.js --target=firefox100,chrome100 --watch"
   },
   "author": "AVP",
   "license": "MIT"
