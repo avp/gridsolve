@@ -4,7 +4,12 @@ A program for solving grid logic puzzles while printing out its reasoning.
 
 == Getting Started
 
-See the link:./puzzles/[puzzles] directory for the puzzle format.
+Try it out on the https://avp.github.io/gridsolve[website] for a simple input format.
+
+Example puzzle can be found https://avp.github.io/gridsolve/#%7B%22categories%22%3A%5B%22name%22%2C%22country%22%2C%22year%22%5D%2C%22labels%22%3A%5B%22angela%22%2C%22donald%22%2C%22leo%22%2C%22germany%22%2C%22ireland%22%2C%22usa%22%2C%221946%22%2C%221954%22%2C%221979%22%5D%2C%22numLabels%22%3A%223%22%2C%22clues%22%3A%5B%7B%22name%22%3A%221%22%2C%22kind%22%3A%22yes%22%2C%22params%22%3A%5B%225%22%2C%226%22%5D%7D%2C%7B%22name%22%3A%222%22%2C%22kind%22%3A%22after%22%2C%22params%22%3A%5B%222%22%2C%222%22%2C%223%22%5D%7D%2C%7B%22name%22%3A%223%22%2C%22kind%22%3A%22or%22%2C%22params%22%3A%5B%221%22%2C%226%22%2C%224%22%5D%7D%5D%7D[here] if you don't have one of your own.
+
+Or use the CLI program with `cargo run`,
+and see the link:./puzzles/[puzzles] directory for the puzzle format.
 
 == Inspiration
 
@@ -79,4 +84,3 @@ Running NoByProxy...
 +------------+---------------+---------------+
 ....
 
-http://localhost:9000/#%7B%22categories%22%3A%5B%22name%22%2C%22country%22%2C%22year%22%5D%2C%22labels%22%3A%5B%22angela%22%2C%22donald%22%2C%22leo%22%2C%22germany%22%2C%22ireland%22%2C%22usa%22%2C%221946%22%2C%221954%22%2C%221979%22%5D%2C%22numLabels%22%3A%223%22%2C%22clues%22%3A%5B%7B%22name%22%3A%221%22%2C%22kind%22%3A%22yes%22%2C%22params%22%3A%5B%225%22%2C%226%22%5D%7D%2C%7B%22name%22%3A%222%22%2C%22kind%22%3A%22after%22%2C%22params%22%3A%5B%222%22%2C%222%22%2C%223%22%5D%7D%2C%7B%22name%22%3A%223%22%2C%22kind%22%3A%22or%22%2C%22params%22%3A%5B%221%22%2C%226%22%2C%224%22%5D%7D%5D%7D
