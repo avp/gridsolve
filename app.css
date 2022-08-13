@@ -1,0 +1,145 @@
+html,body {
+  font-family: Arial, Helvetica, 'sans-serif';
+}
+
+body {
+  padding: 0;
+  margin: 0;
+}
+
+.categoryInputs p {
+  margin: .1rem;
+}
+
+.categoryInput {
+  margin-bottom: 1rem;
+}
+
+.labelInput {
+  margin-left: .5rem;
+}
+
+.kindSelect {
+  margin-right: .5rem;
+}
+
+.clueInputs {
+  margin: 1rem 0;
+}
+
+.infoText {
+  padding-left: .5rem;
+  padding-right: .5rem;
+}
+
+.Solution {
+  display: grid;
+  grid-template-columns: 1fr 40rem;
+}
+
+.Solution .LeftContainer {
+  padding: .5rem;
+}
+
+.stepsSlider {
+  width: 100%;
+}
+
+.Solution .StepContainer {
+  height: 100vh;
+  overflow-y: scroll;
+  overflow-x: wrap;
+}
+
+.SolutionTable {
+  border-style: outset;
+  border-collapse: collapse;
+  margin: 1rem;
+}
+
+.SolutionTable td {
+  border: 1px solid gray;
+  padding: .2rem .3rem;
+}
+
+.SolutionGrid {
+  margin: 1rem;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.SolutionGrid .rotatedText {
+  writing-mode: sideways-rl;
+  transform: rotate(180deg);
+}
+
+.SolutionGrid .rotatedTextInner {
+  writing-mode: sideways-rl;
+  transform: rotate(180deg);
+}
+
+.SolutionGrid td {
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+.SolutionGrid .gridEntry {
+  height: 1.5em;
+  width: 1.5em;
+  border: 1px solid darkgray;
+  text-align: center;
+  vertical-align: center;
+}
+
+.SolutionGrid .entryContainer {
+  height: 100%;
+  width: 100%;
+  display: inline-block;
+  text-align: center;
+  vertical-align: center;
+}
+
+.SolutionGrid .labelName {
+  border-style: none;
+}
+
+.SolutionGrid .labelName.top {
+  vertical-align: bottom;
+  padding-bottom: .3em;
+}
+
+.SolutionGrid .labelName.left {
+  text-align: right;
+  padding-right: .5em;
+}
+
+.SolutionGrid .spacer {
+  border-style: none;
+  height: 4px;
+  width: 4px;
+}
+
+.yesEntry {
+  color: green;
+}
+
+.noEntry {
+  color: darkgray;
+  font-size: .75rem;
+}
+
+.Solution .step {
+  margin-bottom: .2rem;
+}
+
+.Solution .stepResult {
+  display: block;
+}
+
+.Solution .stepDescription {
+  display: block;
+  color: gray;
+  font-size: .8rem;
+  padding-left: .5em;
+}
