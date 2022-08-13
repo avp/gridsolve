@@ -11,7 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: jetli/wasm-pack-action@v0.3.0
+    - uses: actions/setup-node@v2
     - uses: actions/checkout@v3
+    - name: download esbuild
+      run: npm install -g esbuild
     - name: build
       run: make release
     - name: deploy
