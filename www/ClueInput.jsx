@@ -1,19 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-const KINDS = {
-  yes: {
-    name: 'yes',
-    params: ['label', 'label'],
-  },
-  after: {
-    name: 'after',
-    params: ['label', 'category', 'label'],
-  },
-  or: {
-    name: 'or',
-    params: ['label', 'label', 'label'],
-  },
-};
+import KINDS from './ClueKinds';
 
 export default function ClueInput({ categories, labels, onChange }) {
   const [name, setName] = useState('');
@@ -32,7 +18,7 @@ export default function ClueInput({ categories, labels, onChange }) {
   function makeClue() {
     return {
       name,
-      kind,
+      kind: kind.name,
       params,
     };
   }
@@ -40,15 +26,6 @@ export default function ClueInput({ categories, labels, onChange }) {
   useEffect(() => {
     onChange(makeClue());
   }, [name, kind, params, labels, categories]);
-
-  useEffect(() => {
-    // if (!paramInputs.length) return;
-    // const copy = [];
-    // for (const paramInput of paramInputs) {
-    //   copy.push(paramInput.value);
-    // }
-    // setParams(copy);
-  }, [labels, categories]);
 
   function setParamAt(i, newVal) {
     let copy = params.slice();
@@ -112,6 +89,14 @@ export default function ClueInput({ categories, labels, onChange }) {
     return paramSelect(labels, paramIdx);
   }
 
+  function numberSelect(paramIdx) {
+    const nums = [];
+    for (let i = 1; i < categories.length-1; ++i) {
+      nums.push(i);
+    }
+    return paramSelect(nums, paramIdx);
+  }
+
   function categorySelect(paramIdx) {
     return paramSelect(categories, paramIdx);
   }
@@ -126,9 +111,23 @@ export default function ClueInput({ categories, labels, onChange }) {
       paramInputs.push(infoText('is'));
       paramInputs.push(labelSelect(1));
       break;
+    case 'no':
+      paramInputs.push(labelSelect(0));
+      paramInputs.push(infoText('is not'));
+      paramInputs.push(labelSelect(1));
+      break;
     case 'after':
       paramInputs.push(labelSelect(0));
       paramInputs.push(infoText('is after'));
+      paramInputs.push(labelSelect(2));
+      paramInputs.push(infoText('in'));
+      paramInputs.push(categorySelect(1));
+      break;
+    case 'afterexactly':
+      paramInputs.push(labelSelect(0));
+      paramInputs.push(infoText('is exactly'));
+      paramInputs.push(labelSelect(3));
+      paramInputs.push(infoText('spots after'));
       paramInputs.push(labelSelect(2));
       paramInputs.push(infoText('in'));
       paramInputs.push(categorySelect(1));
@@ -139,6 +138,24 @@ export default function ClueInput({ categories, labels, onChange }) {
       paramInputs.push(labelSelect(1));
       paramInputs.push(infoText('or'));
       paramInputs.push(labelSelect(2));
+      break;
+    case 'xor':
+      paramInputs.push(labelSelect(0));
+      paramInputs.push(infoText('is exactly one of'));
+      paramInputs.push(labelSelect(1));
+      paramInputs.push(infoText('or'));
+      paramInputs.push(labelSelect(2));
+      break;
+    case 'twobytwo':
+      paramInputs.push(infoText('either'));
+      paramInputs.push(labelSelect(0));
+      paramInputs.push(infoText('is'));
+      paramInputs.push(labelSelect(2));
+      paramInputs.push(infoText('and'));
+      paramInputs.push(labelSelect(1));
+      paramInputs.push(infoText('is'));
+      paramInputs.push(labelSelect(3));
+      paramInputs.push(infoText('or vice versa'));
       break;
   }
   return (

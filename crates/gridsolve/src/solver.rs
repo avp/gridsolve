@@ -170,6 +170,11 @@ impl<'p> Grid<'p> {
     /// the cell was changed from its initial value and calls the callback.
     #[must_use]
     pub fn set(&mut self, label1: Label, label2: Label, val: Cell) -> Option<bool> {
+        let (label1, label2) = if label1.category.0 < label2.category.0 {
+            (label1, label2)
+        } else {
+            (label2, label1)
+        };
         match self.set_impl(label1, label2, val) {
             Some(true) => {
                 self.steps.push(Step::new(
@@ -194,6 +199,11 @@ impl<'p> Grid<'p> {
         val: Cell,
         callback: CB,
     ) -> Option<bool> {
+        let (label1, label2) = if label1.category.0 < label2.category.0 {
+            (label1, label2)
+        } else {
+            (label2, label1)
+        };
         match self.set_impl(label1, label2, val) {
             Some(true) => {
                 self.steps.push(Step::new(

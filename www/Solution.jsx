@@ -70,6 +70,8 @@ function SolutionGrid({ puzzle, solution, numSteps }) {
     const step = solution.steps[i];
     lookup[step.label1] ??= {};
     lookup[step.label1][step.label2] = step.yes;
+    lookup[step.label2] ??= {};
+    lookup[step.label2][step.label1] = step.yes;
   }
 
   function doLookup(label1, label2) {

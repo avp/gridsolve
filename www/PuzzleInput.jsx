@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import ClueInput from './ClueInput';
+import KINDS from './ClueKinds';
+import { makePuzzleString } from './Puzzle';
 import { solve_puzzle as solveWASM } from './pkg/gridsolve_wasm.js';
 
 export default function PuzzleInput({ onSolution }) {
@@ -31,42 +33,13 @@ export default function PuzzleInput({ onSolution }) {
 
   function validate(ev) {
     ev.preventDefault();
-    let puzzleString = '[Categories]\n';
-    let l = 0;
-    for (let c = 0; c < categories.length; ++c) {
-      puzzleString += categories[c] + '\n';
-      for (let i = 0; i < numLabels; ++i) {
-        puzzleString += labels[l] + '\n';
-        ++l;
-      }
-      puzzleString += '\n';
-    }
-    puzzleString += '[Clues]\n';
-    for (const clue of clues) {
-      puzzleString += clue.name + ',' + clue.kind.name;
-      for (let i = 0, e = clue.kind.params.length; i < e; ++i) {
-        puzzleString += ',';
-        switch (clue.kind.params[i]) {
-          case 'label':
-            puzzleString += labels[clue.params[i]];
-            break;
-          case 'category':
-            puzzleString += categories[clue.params[i]];
-            break;
-          default:
-            break;
-        }
-      }
-      puzzleString += '\n';
-    }
-
     const puzzle = {
       categories,
       labels,
       numLabels,
       clues,
-      puzzleString,
     };
+    const puzzleString = makePuzzleString(puzzle);
     const solution = JSON.parse(solveWASM(puzzleString));
 
     if (solution.error) {

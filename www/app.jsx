@@ -3,24 +3,7 @@ import ReactDOM from 'react-dom/client';
 import initWASM, { solve_puzzle as solveWASM } from './pkg/gridsolve_wasm.js';
 import PuzzleInput from './PuzzleInput';
 import Solution from './Solution';
-
-function readHash() {
-  console.log("Reading hash");
-  if (window.location.hash) {
-    try {
-      const puzzle = JSON.parse(
-        decodeURIComponent(window.location.hash.substring(1))
-      );
-      const solution = JSON.parse(solveWASM(puzzle.puzzleString));
-      if (!solution.error) {
-        return [puzzle, solution];
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  return [null, null];
-}
+import { makePuzzleString } from './Puzzle';
 
 function App() {
   const [puzzle, setPuzzle] = useState(existingPuzzle);
@@ -32,7 +15,6 @@ function App() {
     } else {
       window.location.hash = encodeURIComponent(JSON.stringify(puzzle));
     }
-
   }, [puzzle]);
 
   function hashListener() {
@@ -42,9 +24,8 @@ function App() {
   }
 
   useEffect(() => {
-    console.log('hi');
     window.addEventListener('hashchange', hashListener);
-    // return () => window.removeEventListener('hashchange', hashListener);
+    return () => window.removeEventListener('hashchange', hashListener);
   });
 
   function handleInput(puzzle, solution) {
@@ -64,6 +45,23 @@ function App() {
     );
   }
   return <PuzzleInput onSolution={handleInput}></PuzzleInput>;
+}
+
+function readHash() {
+  if (window.location.hash) {
+    try {
+      const puzzle = JSON.parse(
+        decodeURIComponent(window.location.hash.substring(1))
+      );
+      const solution = JSON.parse(solveWASM(makePuzzleString(puzzle)));
+      if (!solution.error) {
+        return [puzzle, solution];
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  return [null, null];
 }
 
 let existingPuzzle = null;
