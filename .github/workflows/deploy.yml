@@ -16,9 +16,9 @@ jobs:
     - name: download esbuild
       run: npm install -g esbuild
     - name: install deps
-      run:
-        | cd www
-        | npm install
+      run: |
+        cd www
+        npm install
     - name: build
       run: make release
     - name: deploy
