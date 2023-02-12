@@ -1,15 +1,13 @@
 [package]
 name = "gridsolve_cli"
 version = "0.1.0"
-authors = ["Aakash Patel <aakpat6@gmail.com>"]
+authors = ["Aakash Patel <github@avp42.com>"]
 license = "MIT"
 repository = "https://github.com/avp/gridsolve"
 edition = "2018"
 
 [dependencies]
 gridsolve = { path = "../gridsolve" }
-bimap = "0.5.3"
-itertools =  "0.9.0"
 prettytable-rs = "0.10.0"
 structopt = "0.3.20"
 anyhow = "1.0.58"
