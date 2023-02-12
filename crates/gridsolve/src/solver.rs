@@ -9,10 +9,10 @@ struct SolutionRow(Vec<Option<Label>>);
 
 #[derive(Debug, Serialize)]
 pub struct Step<'p> {
-    label1: &'p str,
-    label2: &'p str,
-    yes: bool,
-    description: String,
+    pub label1: &'p str,
+    pub label2: &'p str,
+    pub yes: bool,
+    pub description: String,
 }
 
 impl<'p> Step<'p> {
